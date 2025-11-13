@@ -43,6 +43,9 @@ def clean_and_transform(path_folder: str):
     print(f"Quantidade de linhas com valores negativos: {negative_counts}")
     df = df[~negative_conditions]
 
+    # Remove os clientes LandTeste e Gigalink
+    df = df[~df['client_name'].isin(['LandTeste', 'Gigalink'])]
+
     # Reordenando as colunas de forma lógica
     logical_order = [
         'timestamp', 'test_uuid', 

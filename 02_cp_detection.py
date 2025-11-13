@@ -5,7 +5,12 @@ import ruptures as rpt
 import time
 import os
 
-def pelt_wrapper(X, model="rbf", pen=3, **kwargs):
+from rpy2.robjects.packages import importr
+from rpy2.robjects.vectors import FloatVector
+changepoint_np = importr('changepoint.np')
+changepoint = importr('changepoint')
+
+def pelt_wrapper(X, mode='rbf', **kwargs):
     """
     Função adaptadora (wrapper) para usar o algoritmo PELT com a função
     genérica detect_changepoints_generic.
@@ -17,8 +22,6 @@ def pelt_wrapper(X, model="rbf", pen=3, **kwargs):
     -----------
     X : np.ndarray
         A série temporal.
-    model : str, optional
-        O modelo de custo para o PELT ('rbf', 'l1', 'l2', etc.). Padrão 'rbf'.
     pen : int or float, optional
         A penalidade para o algoritmo PELT. Padrão 3.
     **kwargs : dict
@@ -31,13 +34,18 @@ def pelt_wrapper(X, model="rbf", pen=3, **kwargs):
     """
     startTime = time.time()
 
-    # 1. Executar o algoritmo PELT
-    algo = rpt.Pelt(model=model).fit(X)
-    result = algo.predict(pen=pen)
-    
-    # O resultado do PELT inclui o final da série, que removemos para compatibilidade
-    CP = np.array(result[:-1]).astype(int)
-
+    if mode == 'rbf':
+        algo = rpt.Pelt(model='rbf').fit(X)
+        # pen = np.log(len(X))
+        pen = 3
+        result = algo.predict(pen=pen)
+        CP = np.array(result[:-1]).astype(int)
+    elif mode == 'ed':
+        CP = [int(i) for i in changepoint.cpts(changepoint_np.cpt_np(FloatVector(X), penalty='MBIC', minseglen=4))]
+        CP = np.array(CP[:-1]).astype(int)
+    else:
+        raise ValueError("Modo desconhecido. Use 'rbf' ou 'ed'.")
+   
     endTime = time.time()
     elapsedTime = endTime - startTime
 
@@ -98,20 +106,6 @@ def detect_changepoints(input_dir, output_dir, detection_func, default_params):
 
                 local_means = np.zeros(len(y))
                 local_stds = np.zeros(len(y))
-
-                # if len(CP) > 0:
-                #     cps = CP.astype(int)
-                #     all_cps = np.concatenate(([0], cps, [len(y)]))
-                #     for i in range(len(all_cps) - 1):
-                #         start_idx = all_cps[i]
-                #         end_idx = all_cps[i+1]
-                #         if i < len(M0):
-                #             local_means[start_idx:end_idx] = M0[i]
-                #             local_stds[start_idx:end_idx] = S0[i]
-                # else:
-                #     if len(y) > 0:
-                #         local_means[:] = np.mean(y)
-                #         local_stds[:] = np.std(y, ddof=1) if len(y) > 1 else 0
 
                 # Recalcular M0 e S0 manualmente
                 if len(CP) > 0:
@@ -245,61 +239,72 @@ if __name__ == '__main__':
     
     detect_changepoints(
         input_dir='time_series',
-        output_dir='changepoints/pelt',
+        output_dir='changepoints/pelt_ed',
         detection_func=pelt_wrapper,
         default_params={
             'w': WINDOW_SIZE,
+            'mode': 'ed'
         },
     )
 
     detect_changepoints(
         input_dir='time_series',
-        output_dir='changepoints/mean',
-        detection_func=vwcd,
+        output_dir='changepoints/pelt_rbf',
+        detection_func=pelt_wrapper,
         default_params={
             'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'mean',
-            'verbose': False
+            'mode': 'rbf'
         },
     )
 
-    detect_changepoints(
-        input_dir='time_series',
-        output_dir='changepoints/multiplicativa',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'multiplicativa',
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir='time_series',
+    #     output_dir='changepoints/mean',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'mean',
+    #         'verbose': False
+    #     },
+    # )
+
+    # detect_changepoints(
+    #     input_dir='time_series',
+    #     output_dir='changepoints/multiplicativa',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'multiplicativa',
+    #         'verbose': False
+    #     },
+    # )
 
 
-    detect_changepoints(
-        input_dir='time_series',
-        output_dir='changepoints/logaritmica_KL',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'logaritmica_KL',
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir='time_series',
+    #     output_dir='changepoints/logaritmica_KL',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'logaritmica_KL',
+    #         'verbose': False
+    #     },
+    # )
 
-    detect_changepoints(
-        input_dir='time_series',
-        output_dir='changepoints/logaritmica_H',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'logaritmica_H',
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir='time_series',
+    #     output_dir='changepoints/logaritmica_H',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'logaritmica_H',
+    #         'verbose': False
+    #     },
+    # )
 
     # recalculate_means_and_stds_by_reference(
     #     input_dir='changepoints/logaritmica_KL/',
