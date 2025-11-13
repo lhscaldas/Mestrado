@@ -53,7 +53,7 @@ def plot_series(time_series, states):
 def create_dataframe(time_series, states, client, server):
     N = len(time_series)
     # timestamps de 30 em 30minutos a partir de 2025-08-01
-    timestamps = pd.date_range(start='2025-08-01', periods=N, freq='30T')
+    timestamps = pd.date_range(start='2025-08-01', periods=N, freq='30min')
     client_col = [client] * N
     server_col = [server] * N
 
@@ -68,21 +68,29 @@ def create_dataframe(time_series, states, client, server):
 
 # criar multiplos dfs para diferentes clientes e servidores e salvar em diferentes arquivos csv
 def generate_csvs(num_pairs, N, means, stds):
+    # verificar se a pasta ja existe, se sim, limpar os arquivos antigos, se não, criar a pasta
+    if not os.path.exists('artificial_time_series'):
+        os.makedirs('artificial_time_series')
+    else:
+        # limpar arquivos antigos
+        for file in os.listdir('artificial_time_series'):
+            file_path = os.path.join('artificial_time_series', file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
     for i in range(num_pairs):
-        client = f'Cliente_{i+1:02d}'
-        server = f'Server_{i+1:02d}'
+        client = f'Cliente{i+1:02d}'
+        server = f'Server{i+1:02d}'
         time_series, states = generate_series(N, means, stds)
         df = create_dataframe(time_series, states, client, server)
-        os.makedirs('artificial_time_series', exist_ok=True)
         df.to_csv(f'artificial_time_series/{client}_{server}.csv', index=False)
 
 
 if __name__ == "__main__":
-    N = 300
+    N = 1440
     means = [50, 100, 200]
     stds = [5, 10, 5]
 
     # time_series, states = generate_series(N, means, stds)
     # plot_series(time_series, states)
     
-    generate_csvs(num_pairs=5, N=N, means=means, stds=stds)
+    generate_csvs(num_pairs=30, N=N, means=means, stds=stds)

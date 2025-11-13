@@ -36,8 +36,9 @@ def pelt_wrapper(X, mode='rbf', **kwargs):
 
     if mode == 'rbf':
         algo = rpt.Pelt(model='rbf').fit(X)
-        # pen = np.log(len(X))
-        pen = 3
+        # pen = 2 # AIC
+        pen = np.log(len(X)) # BIC
+        # pen = 3 
         result = algo.predict(pen=pen)
         CP = np.array(result[:-1]).astype(int)
     elif mode == 'ed':
@@ -236,20 +237,24 @@ def recalculate_means_and_stds_by_reference(input_dir, output_dir, reference_fea
 if __name__ == '__main__':
     THRESHOLD = 0.98
     WINDOW_SIZE = 24
+    # input_dir = 'artificial_time_series'
+    # output_dir = 'artificial_changepoints'
+    input_dir = 'time_series'
+    output_dir = 'changepoints'
     
-    detect_changepoints(
-        input_dir='time_series',
-        output_dir='changepoints/pelt_ed',
-        detection_func=pelt_wrapper,
-        default_params={
-            'w': WINDOW_SIZE,
-            'mode': 'ed'
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/pelt_ed',
+    #     detection_func=pelt_wrapper,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'mode': 'ed'
+    #     },
+    # )
 
     detect_changepoints(
-        input_dir='time_series',
-        output_dir='changepoints/pelt_rbf',
+        input_dir=input_dir,
+        output_dir=output_dir+'/pelt_rbf_bic',
         detection_func=pelt_wrapper,
         default_params={
             'w': WINDOW_SIZE,
@@ -257,9 +262,10 @@ if __name__ == '__main__':
         },
     )
 
+
     # detect_changepoints(
-    #     input_dir='time_series',
-    #     output_dir='changepoints/mean',
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/mean',
     #     detection_func=vwcd,
     #     default_params={
     #         'w': WINDOW_SIZE,
@@ -270,8 +276,8 @@ if __name__ == '__main__':
     # )
 
     # detect_changepoints(
-    #     input_dir='time_series',
-    #     output_dir='changepoints/multiplicativa',
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/multiplicativa',
     #     detection_func=vwcd,
     #     default_params={
     #         'w': WINDOW_SIZE,
@@ -283,8 +289,8 @@ if __name__ == '__main__':
 
 
     # detect_changepoints(
-    #     input_dir='time_series',
-    #     output_dir='changepoints/logaritmica_KL',
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/logaritmica_KL',
     #     detection_func=vwcd,
     #     default_params={
     #         'w': WINDOW_SIZE,
@@ -295,8 +301,8 @@ if __name__ == '__main__':
     # )
 
     # detect_changepoints(
-    #     input_dir='time_series',
-    #     output_dir='changepoints/logaritmica_H',
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/logaritmica_H',
     #     detection_func=vwcd,
     #     default_params={
     #         'w': WINDOW_SIZE,
@@ -307,8 +313,8 @@ if __name__ == '__main__':
     # )
 
     # recalculate_means_and_stds_by_reference(
-    #     input_dir='changepoints/logaritmica_KL/',
-    #     output_dir='changepoints/logaritmica_KL_recalc/',
+    #     input_dir=output_dir+'/logaritmica_KL/',
+    #     output_dir=output_dir+'/logaritmica_KL_recalc/',
     #     reference_feature='throughput_download'
     # )
 
