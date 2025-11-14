@@ -1,22 +1,19 @@
 import numpy as np
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 
-def generate_series(N, means, stds):
+def generate_series(N, means, stds, p):
     
-    n_states = 3
+    n_states = len(means)
 
-    if len(means) != n_states or len(stds) != n_states:
-        raise ValueError("As listas 'means' e 'stds' devem ter 3 elementos.")
+    if len(means) != len(stds):
+        raise ValueError("As listas 'means' e 'stds' devem ter o mesmo tamanho.")
     
-    p = 0.99
-    A = np.array([
-        [p, (1 - p) / 2, (1 - p) / 2],
-        [(1 - p) / 2, p, (1 - p) / 2],
-        [(1 - p) / 2, (1 - p) / 2, p]
-    ])
+    A = np.full((n_states, n_states), (1-p) / (n_states - 1))
+    np.fill_diagonal(A, p)
 
-    pi = np.array([1/3, 1/3, 1/3])
+    pi = np.full(n_states, 1 / n_states)
 
     states = np.zeros(N, dtype=int)
     time_series = np.zeros(N)
@@ -35,44 +32,59 @@ def generate_series(N, means, stds):
 
     return time_series, states
 
-# plotar a serie com a cor da linha mudando de acordo com o estado
 def plot_series(time_series, states):
-    import matplotlib.pyplot as plt
     N = len(time_series)
-    colors = ['blue', 'orange', 'green']
-    plt.figure(figsize=(12, 6))
+    n_states = np.max(states) + 1
+    cmap = plt.get_cmap('tab10')
+    colors = [cmap(i % 10) for i in range(n_states)]
+    fig, ax = plt.subplots(figsize=(12, 6))
+    legend_added = [False] * n_states
     for i in range(1, N):
-        plt.plot([i-1, i], [time_series[i-1], time_series[i]], color=colors[states[i]])
-    plt.title("Série Temporal Gerada por Cadeia de Markov Oculta")
-    plt.xlabel("Tempo")
-    plt.ylabel("Valor da Série")
-    plt.grid()
+        current_state = states[i]
+        current_color = colors[current_state]
+        label = None
+        if not legend_added[current_state]:
+            label = f"Estado {current_state}"
+            legend_added[current_state] = True
+        ax.plot([i-1, i], 
+                [time_series[i-1], time_series[i]], 
+                color=current_color, 
+                label=label)
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set_title("Série Temporal Gerada por Cadeia de Markov Oculta")
+    ax.set_xlabel("Tempo")
+    ax.set_ylabel("Valor")
+    ax.grid()
+    plt.tight_layout()
     plt.show()
 
-# criar um dataframe com a serie, os estados, uma coluna de timestamp, uma de cliente e uma de servidor
 def create_dataframe(time_series, states, client, server):
     N = len(time_series)
-    # timestamps de 30 em 30minutos a partir de 2025-08-01
+    
     timestamps = pd.date_range(start='2025-08-01', periods=N, freq='30min')
     client_col = [client] * N
     server_col = [server] * N
+
+    state_series = pd.Series(states)
+    label_CP = (state_series != state_series.shift(1)).astype(int)
+    label_CP.iloc[0] = 0
+
 
     df = pd.DataFrame({
         'timestamp': timestamps,
         'value': time_series,
         'state': states,
+        'value_cp': label_CP,
         'client_name': client_col,
         'server_name': server_col
     })
     return df
 
-# criar multiplos dfs para diferentes clientes e servidores e salvar em diferentes arquivos csv
-def generate_csvs(num_pairs, N, means, stds):
-    # verificar se a pasta ja existe, se sim, limpar os arquivos antigos, se não, criar a pasta
+
+def generate_csvs(num_pairs, N, means, stds, p):
     if not os.path.exists('artificial_time_series'):
         os.makedirs('artificial_time_series')
     else:
-        # limpar arquivos antigos
         for file in os.listdir('artificial_time_series'):
             file_path = os.path.join('artificial_time_series', file)
             if os.path.isfile(file_path):
@@ -80,17 +92,18 @@ def generate_csvs(num_pairs, N, means, stds):
     for i in range(num_pairs):
         client = f'Cliente{i+1:02d}'
         server = f'Server{i+1:02d}'
-        time_series, states = generate_series(N, means, stds)
+        time_series, states = generate_series(N, means, stds, p)
         df = create_dataframe(time_series, states, client, server)
         df.to_csv(f'artificial_time_series/{client}_{server}.csv', index=False)
 
 
 if __name__ == "__main__":
     N = 1440
-    means = [50, 100, 200]
-    stds = [5, 10, 5]
+    means = [50, 50, 100, 100]
+    stds = [1, 3, 1, 3]
+    p = 0.995
 
-    # time_series, states = generate_series(N, means, stds)
+    # time_series, states = generate_series(N, means, stds, p)
     # plot_series(time_series, states)
     
-    generate_csvs(num_pairs=30, N=N, means=means, stds=stds)
+    generate_csvs(num_pairs=5, N=N, means=means, stds=stds, p=p)

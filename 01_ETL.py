@@ -12,6 +12,9 @@ def clean_and_transform(path_folder: str):
     # Pega apenas as coluna ["timestamp","client_ip","server_ip","download_tp_bps","latency_download_sec","upload_tp_bps","latency_upload_sec","mac_address","download_retrans_percent","test_uuid"]
     df = df[["timestamp","client_ip","server_ip","download_tp_bps","latency_download_sec","upload_tp_bps","latency_upload_sec","mac_address","download_retrans_percent","test_uuid"]]
 
+    # Filtra a coluna timestamp até 2025-08-31
+    df = df[df['timestamp'] <= '2025-08-31']
+
     # Renomeia a coluna download_retrans_percent para loss_rate
     df = df.rename(columns={"download_retrans_percent": "loss_rate"})
 

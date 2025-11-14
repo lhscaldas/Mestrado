@@ -10,7 +10,7 @@ from rpy2.robjects.vectors import FloatVector
 changepoint_np = importr('changepoint.np')
 changepoint = importr('changepoint')
 
-def pelt_wrapper(X, mode='rbf', **kwargs):
+def pelt_wrapper(X, mode='rbf', penalty=None, **kwargs):
     """
     Função adaptadora (wrapper) para usar o algoritmo PELT com a função
     genérica detect_changepoints_generic.
@@ -36,9 +36,11 @@ def pelt_wrapper(X, mode='rbf', **kwargs):
 
     if mode == 'rbf':
         algo = rpt.Pelt(model='rbf').fit(X)
-        # pen = 2 # AIC
-        pen = np.log(len(X)) # BIC
-        # pen = 3 
+        pen = 3
+        if penalty == 'BIC':
+         pen = np.log(len(X)) # BIC
+        elif penalty == 'AIC':
+         pen = 2
         result = algo.predict(pen=pen)
         CP = np.array(result[:-1]).astype(int)
     elif mode == 'ed':
@@ -237,10 +239,10 @@ def recalculate_means_and_stds_by_reference(input_dir, output_dir, reference_fea
 if __name__ == '__main__':
     THRESHOLD = 0.98
     WINDOW_SIZE = 24
-    # input_dir = 'artificial_time_series'
-    # output_dir = 'artificial_changepoints'
-    input_dir = 'time_series'
-    output_dir = 'changepoints'
+    input_dir = 'artificial_time_series'
+    output_dir = 'artificial_changepoints'
+    # input_dir = 'time_series'
+    # output_dir = 'changepoints'
     
     # detect_changepoints(
     #     input_dir=input_dir,
@@ -252,65 +254,88 @@ if __name__ == '__main__':
     #     },
     # )
 
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/pelt_rbf_bic',
+    #     detection_func=pelt_wrapper,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'mode': 'rbf',
+    #         'penalty':'BIC'
+    #     },
+    # )
+
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/pelt_rbf_aic',
+    #     detection_func=pelt_wrapper,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'mode': 'rbf',
+    #         'penalty':'AIC'
+    #     },
+    # )
+
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/pelt_rbf_p3',
+    #     detection_func=pelt_wrapper,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'mode': 'rbf',
+    #         'penalty':None
+    #     },
+    # )
+
+
     detect_changepoints(
         input_dir=input_dir,
-        output_dir=output_dir+'/pelt_rbf_bic',
-        detection_func=pelt_wrapper,
+        output_dir=output_dir+'/mean',
+        detection_func=vwcd,
         default_params={
             'w': WINDOW_SIZE,
-            'mode': 'rbf'
+            'vote_p_thr': THRESHOLD,
+            'aggreg': 'mean',
+            'verbose': False
+        },
+    )
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/multiplicativa',
+        detection_func=vwcd,
+        default_params={
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': 'multiplicativa',
+            'verbose': False
         },
     )
 
 
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/mean',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'mean',
-    #         'verbose': False
-    #     },
-    # )
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/logaritmica_KL',
+        detection_func=vwcd,
+        default_params={
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': 'logaritmica_KL',
+            'verbose': False
+        },
+    )
 
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/multiplicativa',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'multiplicativa',
-    #         'verbose': False
-    #     },
-    # )
-
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/logaritmica_KL',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'logaritmica_KL',
-    #         'verbose': False
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/logaritmica_H',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'logaritmica_H',
-    #         'verbose': False
-    #     },
-    # )
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/logaritmica_H',
+        detection_func=vwcd,
+        default_params={
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': 'logaritmica_H',
+            'verbose': False
+        },
+    )
 
     # recalculate_means_and_stds_by_reference(
     #     input_dir=output_dir+'/logaritmica_KL/',

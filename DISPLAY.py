@@ -138,11 +138,11 @@ def plot_changepoints(input_cp_dir, client, site, variable, ylim=None,
     
     plt.show()
 
-def plot_changepoint_comparison(source_dirs, client, server, variables, ylim=None, save_fig=False):
+def plot_changepoint_comparison(source_dirs, client, server, variables, ref_method, ylim=None, save_fig=False):
     """
     Plota uma comparação de análises de changepoint de múltiplas fontes,
     com legenda e cores consistentes para cada método.
-    Trata o método 'Pelt' como ground truth (linha vermelha) e os demais
+    Trata o método 'ref_method' como ground truth (linha preta) e os demais
     como marcadores circulares com deslocamento vertical.
 
     Parâmetros:
@@ -150,12 +150,15 @@ def plot_changepoint_comparison(source_dirs, client, server, variables, ylim=Non
     source_dirs : dict
         Dicionário com nomes para a legenda e caminhos para os diretórios dos CSVs.
         Ex: {'Pelt': 'cp_pelt', 'VWCD Otimizado': 'cp_vwcd_2'}
-    clients : str
-        Uma lista nomes do cliente.
-    sites : str
-        Uma lista com o nome do site/servidore.
+    client : str
+        O nome do cliente (singular).
+    server : str
+        O nome do site/servidor (singular).
     variables : list
         Uma lista com as métricas a serem plotadas.
+    ref_method : str
+        O nome (chave do source_dirs) do método a ser usado como referência 
+        (plotado como linha preta tracejada).
     ylim : tuple or None, optional
         Limites do eixo Y para o gráfico principal.
     save_fig : bool
@@ -166,17 +169,17 @@ def plot_changepoint_comparison(source_dirs, client, server, variables, ylim=Non
     method_labels = list(source_dirs.keys())
     base_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     color_map = {}
-    pelt_label = None
-    non_pelt_color_idx_map = 0 # Contador para cores dos métodos não-Pelt
+    ref_label = ref_method
+    non_ref_color_idx_map = 0 # Contador para cores dos métodos não-referência
 
     for i, label in enumerate(method_labels):
-        if 'pelt' in label.lower():
-            pelt_label = label
+        if label == ref_label:
             color_map[label] = 'black'
         else:
-            color_map[label] = base_colors[non_pelt_color_idx_map % len(base_colors)]
-            non_pelt_color_idx_map += 1
+            color_map[label] = base_colors[non_ref_color_idx_map % len(base_colors)]
+            non_ref_color_idx_map += 1
     # -------------------------------------------------
+    
     for variable in variables:
         data_sources = {}
         for label, input_dir in source_dirs.items():
@@ -187,7 +190,9 @@ def plot_changepoint_comparison(source_dirs, client, server, variables, ylim=Non
             try:
                 # Lê o CSV e trata datas de forma robusta
                 df_temp = pd.read_csv(file_path)
-                df_temp['timestamp'] = pd.to_datetime(df_temp['timestamp'], errors='coerce')
+                # Assumindo que a coluna de tempo se chama 'timestamp' ou 'test_time'
+                time_col = 'timestamp' if 'timestamp' in df_temp.columns else 'test_time'
+                df_temp[time_col] = pd.to_datetime(df_temp[time_col], errors='coerce')
                 data_sources[label] = df_temp
             except Exception as e:
                 print(f"Erro ao ler o arquivo {file_path} para '{label}': {e}")
@@ -197,9 +202,20 @@ def plot_changepoint_comparison(source_dirs, client, server, variables, ylim=Non
             continue
 
         fig, ax = plt.subplots(1, 1, figsize=(18, 6))
-        base_df = next(iter(data_sources.values()))
+        
+        base_df = None
+        if data_sources:
+             base_df = next(iter(data_sources.values()))
+        else:
+            continue # Pula se nenhum dado foi carregado
 
-        ax.plot(base_df['timestamp'], base_df[variable], label=f'Valores de {variable}', alpha=0.6, color='grey')
+        time_col = 'timestamp' if 'timestamp' in base_df.columns else 'test_time'
+        
+        if variable not in base_df.columns:
+            print(f"AVISO: Coluna '{variable}' não encontrada no arquivo base. Pulando gráfico.")
+            continue
+            
+        ax.plot(base_df[time_col], base_df[variable], label=f'Valores de {variable}', alpha=0.6, color='grey')
 
         y_values = base_df[variable].dropna()
         y_range = y_values.max() - y_values.min() if len(y_values) > 1 else 1
@@ -207,49 +223,47 @@ def plot_changepoint_comparison(source_dirs, client, server, variables, ylim=Non
 
         # --- 2. Criação de Elementos para a Legenda Consistente ---
         legend_elements = [mlines.Line2D([0], [0], color='grey', alpha=0.6, label=f'Valores de {variable}')]
-        non_pelt_methods_in_legend = [] # Para manter a ordem correta na legenda
+        non_ref_methods_in_legend = [] # Para manter a ordem correta na legenda
 
-        if pelt_label:
-            legend_elements.append(mlines.Line2D([0], [0], color='black', linestyle='--', label=f'CP {pelt_label}'))
+        if ref_label in method_labels:
+            legend_elements.append(mlines.Line2D([0], [0], color='black', linestyle='--', label=f'CP {ref_label}'))
 
-        non_pelt_color_idx_legend = 0
         for label in method_labels:
-                if 'pelt' not in label.lower():
-                    legend_elements.append(mlines.Line2D([0], [0], marker='o', color=color_map[label], label=f'CP {label}', linestyle='None', markersize=10))
-                    non_pelt_methods_in_legend.append(label) # Guarda a ordem
+                if label != ref_label:
+                    legend_elements.append(mlines.Line2D([0], [0], marker='o', color=color_map.get(label, 'grey'), label=f'CP {label}', linestyle='None', markersize=10))
+                    non_ref_methods_in_legend.append(label) # Guarda a ordem
         # ------------------------------------------------------------
 
         # --- 3. Plotagem dos Changepoints Reais (sem label) ---
-        non_pelt_method_counter = 0 # Usado para o deslocamento vertical na ordem correta
+        non_ref_method_counter = 0 # Usado para o deslocamento vertical na ordem correta
         for label, df in data_sources.items():
             cp_col = f"{variable}_cp"
             if cp_col in df.columns:
                 changepoint_data = df[df[cp_col] == 1].copy() # Usa .copy() para evitar SettingWithCopyWarning
 
                 if not changepoint_data.empty:
-                    # Lógica especial para o PELT
-                    if 'pelt' in label.lower():
-                        for cp_time in changepoint_data['timestamp']:
+                    # Lógica especial para o método de REFERÊNCIA
+                    if label == ref_label:
+                        for cp_time in changepoint_data[time_col]:
                             ax.axvline(x=cp_time, color='black', linestyle='--')
                     # Lógica para os outros métodos
                     else:
-                        # Encontra a posição deste método na lista ordenada
                         try:
-                            plot_order_index = non_pelt_methods_in_legend.index(label)
+                            plot_order_index = non_ref_methods_in_legend.index(label)
                         except ValueError:
-                            # Se por algum motivo o label não está na lista da legenda, usa o contador
-                            plot_order_index = non_pelt_method_counter
+                            plot_order_index = non_ref_method_counter
 
                         offset_multiplier = ((-1)**(plot_order_index + 1)) * ((plot_order_index + 1) // 2)
-                        # Calcula o offset usando .loc para segurança
-                        changepoint_data.loc[:, 'y_with_offset'] = changepoint_data[variable] + (offset_multiplier * gap)
-
-                        ax.plot(changepoint_data['timestamp'], changepoint_data['y_with_offset'],
-                                linestyle='None',
-                                marker='o',
-                                color=color_map[label],
-                                markersize=10)
-                        non_pelt_method_counter += 1 # Incrementa apenas se plotou um método não-Pelt
+                        
+                        if variable in changepoint_data.columns:
+                            changepoint_data.loc[:, 'y_with_offset'] = changepoint_data[variable] + (offset_multiplier * gap)
+                            ax.plot(changepoint_data[time_col], changepoint_data['y_with_offset'],
+                                    linestyle='None',
+                                    marker='o',
+                                    color=color_map.get(label, 'grey'),
+                                    markersize=10)
+                        
+                        non_ref_method_counter += 1
         # ------------------------------------------------------
 
         ax.set_ylabel(variable)
