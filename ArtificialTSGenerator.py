@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
-def generate_series(N, means, stds, p):
+def generate_series_hmm(N, means, stds, p):
     
     n_states = len(means)
 
@@ -115,7 +115,7 @@ def generate_csvs(output_folder, generator_func, num_pairs, **kwargs):
 if __name__ == "__main__":
     # Debug
     # N = 300
-    # means = [0, 0.5]
+    # means = [0, 10]
     # stds = [1, 1]
     # p = 0.995
     # t = 150
@@ -123,20 +123,16 @@ if __name__ == "__main__":
     # plot_series(time_series, states)
     
     # Gerar dados
-    kwargs = {
-        'N': 300,
-        'means': [0, 0.5],
-        'stds': [1, 1],
-        # 'p': 0.995,
-        't': 150
-
-    }
     generate_csvs(
-        output_folder='cenario_1',
+        output_folder='time_series/cenario_3c',
         generator_func=generate_series_fixed_cp,
         num_pairs=100,
-        N=300, means=[0, 0.5], stds=[1, 1], t=150
+        N=300, means=[0, 1], stds=[1, 1], t=150
     )
-    # cenario 1: means=[0, 0.5], stds=[1, 1]
-    # cenario 2: means=[0, 1.2], stds=[1, 1]
-    # cenario 3: means=[0, -0.5], stds=[1, 1]
+    # Cenario 1b: means = [0, 0.5], stds = [1, 1], t = 150
+    # Cenario 1c: means = [0, -0.5], stds = [1, 1], t = 150
+    # Cenario 2b: means = [0, 1.2], stds = [1, 1], t = 150
+    # Cenario 2c: means = [0, 0.7], stds = [1, 1], t = 150
+    # Cenario 3b: means = [0, 0.5], stds = [1, 1], t = 150
+    # Cenario 3c: means = [0, 1], stds = [1, 1], t = 150
+    
