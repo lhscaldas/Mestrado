@@ -33,14 +33,10 @@ def generate_series_hmm(N, means, stds, p):
     return time_series, states
 
 def generate_series_fixed_cp(N, means, stds, t):
-    mean = means[0]
-    std = stds[0]
+
     time_series = np.zeros(N)
     time_series[:t] = np.random.normal(means[0], stds[0], size=t)
-
-    mean = means[1]
-    std = stds[1]
-    time_series[t:] = np.random.normal(mean, std, size=N - t)
+    time_series[t:] = np.random.normal(means[1], stds[1], size=N - t)
 
     states = np.zeros(N, dtype=int)
     states[t:] = 1
@@ -129,10 +125,11 @@ if __name__ == "__main__":
         num_pairs=100,
         N=300, means=[0, 1], stds=[1, 1], t=150
     )
-    # Cenario 1b: means = [0, 0.5], stds = [1, 1], t = 150
-    # Cenario 1c: means = [0, -0.5], stds = [1, 1], t = 150
-    # Cenario 2b: means = [0, 1.2], stds = [1, 1], t = 150
-    # Cenario 2c: means = [0, 0.7], stds = [1, 1], t = 150
-    # Cenario 3b: means = [0, 0.5], stds = [1, 1], t = 150
-    # Cenario 3c: means = [0, 1], stds = [1, 1], t = 150
+    # Cenario 1b: means = [0, 0.5], stds = [1, 1], t = 150, N = 300
+    # Cenario 1c: means = [0, -0.5], stds = [1, 1], t = 150, N = 300
+    # Cenario 2b: means = [0, 1.2], stds = [1, 1], t = 150, N = 300
+    # Cenario 2c: means = [0, 0.7], stds = [1, 1], t = 150, N = 300
+    # Cenario 3b: means = [0, 0.5], stds = [1, 1], t = 150, N = 300
+    # Cenario 3c: means = [0, 1], stds = [1, 1], t = 150, N = 300
+    # HMM: means = [50, 50, 100, 100], stds = [1, 3, 1, 3], p = 0.95, N = 1440
     

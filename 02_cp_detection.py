@@ -11,27 +11,6 @@ changepoint_np = importr('changepoint.np')
 changepoint = importr('changepoint')
 
 def pelt_wrapper(X, mode='rbf', penalty=None, **kwargs):
-    """
-    Função adaptadora (wrapper) para usar o algoritmo PELT com a função
-    genérica detect_changepoints_generic.
-
-    Esta função calcula os changepoints, as médias/desvios dos segmentos,
-    e retorna os outros valores como placeholders para manter a compatibilidade.
-
-    Parâmetros:
-    -----------
-    X : np.ndarray
-        A série temporal.
-    pen : int or float, optional
-        A penalidade para o algoritmo PELT. Padrão 3.
-    **kwargs : dict
-        Argumentos adicionais (ignorados pelo PELT, mas necessários para a interface).
-
-    Retorna:
-    --------
-    tuple
-        Uma tupla de 7 elementos compatível com a função genérica.
-    """
     startTime = time.time()
 
     if mode == 'rbf':
@@ -52,7 +31,6 @@ def pelt_wrapper(X, mode='rbf', penalty=None, **kwargs):
     endTime = time.time()
     elapsedTime = endTime - startTime
 
-    # 3. Criar placeholders para as outras saídas
     # Estes conceitos não existem no PELT
     vote_counts = np.zeros_like(X)
     agg_probs = np.zeros_like(X)
@@ -60,41 +38,17 @@ def pelt_wrapper(X, mode='rbf', penalty=None, **kwargs):
     return CP.tolist(), elapsedTime, vote_counts, agg_probs
 
 def detect_changepoints(input_dir, output_dir, detection_func, default_params):
-    """
-    Executa uma função de detecção de changepoints em colunas numéricas de arquivos CSV,
-    permitindo parâmetros específicos por tipo de variável.
 
-    Parâmetros:
-    ----------
-    input_dir : str
-        Diretório contendo os arquivos CSV.
-    output_dir : str
-        Diretório para salvar os resultados.
-    detection_func : function
-        A função de detecção a ser usada (ex: vwcd, pelt_wrapper).
-    default_params : dict
-        Dicionário com os parâmetros padrão a serem usados para todas as variáveis.
-
-    Retorna:
-    -------
-    None
-        Salva novos arquivos CSV no `output_dir`.
-    """
     os.makedirs(output_dir, exist_ok=True)
-    if 'w' not in default_params:
-        raise ValueError("O tamanho da janela 'w' deve ser fornecido em default_params.")
-    w_size = default_params['w']
 
     for file in os.listdir(input_dir):
         if file.endswith(".csv"):
             file_path = os.path.join(input_dir, file)
             df = pd.read_csv(file_path, parse_dates=['timestamp'])
+            df = df.drop(columns=['state', 'value_cp'], errors='ignore')
 
             for column in df.select_dtypes(include=[np.number]).columns:
                 y = df[column].dropna().to_numpy()
-
-                if len(y) < w_size:
-                    continue
 
                 current_params = default_params.copy()
                 
@@ -110,7 +64,7 @@ def detect_changepoints(input_dir, output_dir, detection_func, default_params):
                 local_means = np.zeros(len(y))
                 local_stds = np.zeros(len(y))
 
-                # Recalcular M0 e S0 manualmente
+                # Calcular M0 e S0
                 if len(CP) > 0:
                     cps = CP.astype(int)
                     all_cps = np.concatenate(([0], cps, [len(y)]))
@@ -238,90 +192,84 @@ def recalculate_means_and_stds_by_reference(input_dir, output_dir, reference_fea
 
 import numpy as np
 
-def cusum_standard_benchmark(X, log_pdf_alvo, log_pdf_base, threshold):
-    """
-    Implementação do CUSUM Padrão (Benchmark do Artigo).
-    Baseado na Eq. (5): S[t] = max(0, S[t-1] + log(f_alvo(x)/f_base(x)))
-    
-    Parâmetros:
-    ----------
-    X : array-like
-        A série temporal de observações.
-    log_pdf_alvo : function
-        Função que retorna o log da densidade da hipótese de mudança (ex: fB).
-    log_pdf_base : function
-        Função que retorna o log da densidade da hipótese atual/normal (ex: f0).
-    threshold : float
-        Limiar de detecção (h ou b).
-        
-    Retorno:
-    -------
-    alarm_time : int ou None
-        Índice onde o alarme disparou (primeiro t tal que g_t >= h).
-    trajectory : np.array
-        A trajetória da estatística g_t para visualização.
-    """
+def cusum(X, f0_params, f1_params, threshold):
+
+    def gaussian_log_pdf(x, mean, std):
+        return -0.5 * np.log(2 * np.pi) - np.log(std) - 0.5 * ((x - mean) / std)**2
+
     n = len(X)
     g = np.zeros(n)
     alarm_time = None
     
-    # O artigo inicializa em 0 (Eq. 4)
-    current_g = 0.0 
+    current_g = 0.0
     
+    # Define as funções com os parâmetros fixos passados
+    f0_log = lambda x: gaussian_log_pdf(x, mean=f0_params[0], std=f0_params[1])
+    f1_log = lambda x: gaussian_log_pdf(x, mean=f1_params[0], std=f1_params[1])
+
     for t in range(n):
-        # 1. Calcula a Log-Likelihood Ratio Instantânea
-        # Z_t = ln( f_alvo(X_t) / f_base(X_t) )
-        llr = log_pdf_alvo(X[t]) - log_pdf_base(X[t])
+        # 1. Log-Likelihood Ratio
+        llr = f1_log(X[t]) - f0_log(X[t])
         
-        # 2. Atualização Recursiva (Fórmula de Lindley)
-        # g_t = max(0, g_{t-1} + Z_t)
+        # 2. Atualização Recursiva
         current_g = max(0, current_g + llr)
         g[t] = current_g
         
-        # 3. Verificação do Limiar
-        if current_g >= threshold and alarm_time is None:
+        # 3. Verificação do Limiar (CORRIGIDO)
+        if current_g >= threshold:
             alarm_time = t
-            # Em benchmarks de "Quickest Detection", geralmente paramos no primeiro alarme.
-            # Se quiser continuar monitorando, deve-se resetar current_g = 0 aqui.
             break
             
     return alarm_time, g
 
-# # --- Exemplo de Configuração (Cenário Gaussiano) ---
-# if __name__ == "__main__":
-#     # Definição auxiliar para log-pdf Gaussiana
-#     def gaussian_log_pdf(x, mean, std):
-#         return -0.5 * np.log(2 * np.pi) - np.log(std) - 0.5 * ((x - mean) / std)**2
-
-#     # Parâmetros do "Cenário 1" do artigo (Página 6, VI. Numerical Results) [cite: 312]
-#     # f0: Normal(0, 1)
-#     # fB: Normal(0.5, 1)
-    
-#     # Funções lambda prontas para passar ao algoritmo
-#     f0_log = lambda x: gaussian_log_pdf(x, mean=0.0, std=1.0)
-#     fB_log = lambda x: gaussian_log_pdf(x, mean=0.5, std=1.0)
-    
-#     # Gerando dados sintéticos para teste
-#     # 50 amostras normais (f0) + 50 amostras com mudança (fB)
-#     np.random.seed(42)
-#     dados = np.concatenate([
-#         np.random.normal(0, 1, 50),
-#         np.random.normal(0.5, 1, 50)
-#     ])
-    
-#     # Rodando o Benchmark CuSum(fB, f0)
-#     t_alarme, trajetoria = cusum_standard_benchmark(dados, fB_log, f0_log, threshold=5.0)
-    
-#     print(f"Mudança real inicia em: t=50")
-#     print(f"Alarme disparado em: t={t_alarme}")
+def cusum_wrapper(X, f0_params=(0,1), f1_params=(1,1), threshold=5, **kwargs):
+    startTime = time.time()
+    alarm_time, g = cusum(X, f0_params, f1_params, threshold)
+    CP = []
+    if alarm_time is not None:
+        last_zero = np.where(g[:alarm_time] == 0)[0]
+        est_cp = last_zero[-1] + 1 if last_zero.size > 0 else 0
+        CP.append(est_cp)
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    vote_counts = np.zeros_like(X) # Estes conceitos não existem no CuSum
+    agg_probs = np.zeros_like(X) # Estes conceitos não existem no CuSum
+    return CP, elapsedTime, vote_counts, agg_probs
 
 if __name__ == '__main__':
     THRESHOLD = 0.98
     WINDOW_SIZE = 24
-    input_dir = 'artificial_time_series'
-    output_dir = 'artificial_changepoints'
-    # input_dir = 'time_series'
-    # output_dir = 'changepoints'
+
+    cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
+    cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
+    cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
+
+    input_dir = 'time_series/cenario_3c'
+    output_dir = 'changepoints/cenario_3c'
+    
+    cenario = cenario_3
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/cusum_b',
+        detection_func=cusum_wrapper,
+        default_params={
+            'f0_params': (cenario['m0'], 1),
+            'f1_params': (cenario['mb'], 1),
+            'threshold': np.log(1000)
+        },
+    )
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/cusum_c',
+        detection_func=cusum_wrapper,
+        default_params={
+            'f0_params': (cenario['mc'], 1),
+            'f1_params': (cenario['mb'], 1),
+            'threshold': np.log(1000)
+        },
+    )
     
     # detect_changepoints(
     #     input_dir=input_dir,
@@ -367,54 +315,54 @@ if __name__ == '__main__':
     # )
 
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/mean',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'mean',
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/mean',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'mean',
+    #         'verbose': False
+    #     },
+    # )
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/multiplicativa',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'multiplicativa',
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/multiplicativa',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'multiplicativa',
+    #         'verbose': False
+    #     },
+    # )
 
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/logaritmica_KL',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'logaritmica_KL',
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/logaritmica_KL',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'logaritmica_KL',
+    #         'verbose': False
+    #     },
+    # )
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/logaritmica_H',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': 'logaritmica_H',
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/logaritmica_H',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'logaritmica_H',
+    #         'verbose': False
+    #     },
+    # )
 
     # recalculate_means_and_stds_by_reference(
     #     input_dir=output_dir+'/logaritmica_KL/',
