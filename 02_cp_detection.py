@@ -236,6 +236,85 @@ def recalculate_means_and_stds_by_reference(input_dir, output_dir, reference_fea
 
     print(f"\n✅ Processo concluído. Arquivos atualizados salvos em: {output_dir}")
 
+import numpy as np
+
+def cusum_standard_benchmark(X, log_pdf_alvo, log_pdf_base, threshold):
+    """
+    Implementação do CUSUM Padrão (Benchmark do Artigo).
+    Baseado na Eq. (5): S[t] = max(0, S[t-1] + log(f_alvo(x)/f_base(x)))
+    
+    Parâmetros:
+    ----------
+    X : array-like
+        A série temporal de observações.
+    log_pdf_alvo : function
+        Função que retorna o log da densidade da hipótese de mudança (ex: fB).
+    log_pdf_base : function
+        Função que retorna o log da densidade da hipótese atual/normal (ex: f0).
+    threshold : float
+        Limiar de detecção (h ou b).
+        
+    Retorno:
+    -------
+    alarm_time : int ou None
+        Índice onde o alarme disparou (primeiro t tal que g_t >= h).
+    trajectory : np.array
+        A trajetória da estatística g_t para visualização.
+    """
+    n = len(X)
+    g = np.zeros(n)
+    alarm_time = None
+    
+    # O artigo inicializa em 0 (Eq. 4)
+    current_g = 0.0 
+    
+    for t in range(n):
+        # 1. Calcula a Log-Likelihood Ratio Instantânea
+        # Z_t = ln( f_alvo(X_t) / f_base(X_t) )
+        llr = log_pdf_alvo(X[t]) - log_pdf_base(X[t])
+        
+        # 2. Atualização Recursiva (Fórmula de Lindley)
+        # g_t = max(0, g_{t-1} + Z_t)
+        current_g = max(0, current_g + llr)
+        g[t] = current_g
+        
+        # 3. Verificação do Limiar
+        if current_g >= threshold and alarm_time is None:
+            alarm_time = t
+            # Em benchmarks de "Quickest Detection", geralmente paramos no primeiro alarme.
+            # Se quiser continuar monitorando, deve-se resetar current_g = 0 aqui.
+            break
+            
+    return alarm_time, g
+
+# # --- Exemplo de Configuração (Cenário Gaussiano) ---
+# if __name__ == "__main__":
+#     # Definição auxiliar para log-pdf Gaussiana
+#     def gaussian_log_pdf(x, mean, std):
+#         return -0.5 * np.log(2 * np.pi) - np.log(std) - 0.5 * ((x - mean) / std)**2
+
+#     # Parâmetros do "Cenário 1" do artigo (Página 6, VI. Numerical Results) [cite: 312]
+#     # f0: Normal(0, 1)
+#     # fB: Normal(0.5, 1)
+    
+#     # Funções lambda prontas para passar ao algoritmo
+#     f0_log = lambda x: gaussian_log_pdf(x, mean=0.0, std=1.0)
+#     fB_log = lambda x: gaussian_log_pdf(x, mean=0.5, std=1.0)
+    
+#     # Gerando dados sintéticos para teste
+#     # 50 amostras normais (f0) + 50 amostras com mudança (fB)
+#     np.random.seed(42)
+#     dados = np.concatenate([
+#         np.random.normal(0, 1, 50),
+#         np.random.normal(0.5, 1, 50)
+#     ])
+    
+#     # Rodando o Benchmark CuSum(fB, f0)
+#     t_alarme, trajetoria = cusum_standard_benchmark(dados, fB_log, f0_log, threshold=5.0)
+    
+#     print(f"Mudança real inicia em: t=50")
+#     print(f"Alarme disparado em: t={t_alarme}")
+
 if __name__ == '__main__':
     THRESHOLD = 0.98
     WINDOW_SIZE = 24
