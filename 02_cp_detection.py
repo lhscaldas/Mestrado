@@ -237,138 +237,108 @@ def cusum_wrapper(X, f0_params=(0,1), f1_params=(1,1), threshold=5, **kwargs):
     return CP, elapsedTime, vote_counts, agg_probs
 
 if __name__ == '__main__':
-    THRESHOLD = 0.98
-    WINDOW_SIZE = 24
-
-    cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
-    cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
-    cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
-
-    input_dir = 'time_series/cenario_3c'
-    output_dir = 'changepoints/cenario_3c'
+    THRESHOLD = 0.90
+    WINDOW_SIZE = 50
     
-    cenario = cenario_3
+    cenario_dir = 'teste'
+    input_dir = 'time_series/' + cenario_dir
+    output_dir = 'changepoints/' + cenario_dir
+    
+    # cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
+    # cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
+    # cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
+    # cenario_params = cenario_1
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/cusum_b',
+    #     detection_func=cusum_wrapper,
+    #     default_params={
+    #         'f0_params': (cenario_params['m0'], 1),
+    #         'f1_params': (cenario_params['mb'], 1),
+    #         'threshold': np.log(1000)
+    #     },
+    # )
 
     detect_changepoints(
         input_dir=input_dir,
-        output_dir=output_dir+'/cusum_b',
-        detection_func=cusum_wrapper,
+        output_dir=output_dir+'/otima_H_l1',
+        detection_func=vwcd_MAP,
         default_params={
-            'f0_params': (cenario['m0'], 1),
-            'f1_params': (cenario['mb'], 1),
-            'threshold': np.log(1000)
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': 'otima_H',
+            'lamb': 1,
+            'verbose': False
         },
     )
+
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/otima_H_l0',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'otima_H',
+    #         'lamb': 0,
+    #         'verbose': False
+    #     },
+    # )
+
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/otima_H_l05',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'otima_H',
+    #         'lamb': 0.5,
+    #         'verbose': False
+    #     },
+    # )
+
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/otima_H_l01',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'otima_H',
+    #         'lamb': 0.1,
+    #         'verbose': False
+    #     },
+    # )
+
+
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/otima_H_l1000',
+    #     detection_func=vwcd_MAP,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': 'otima_H',
+    #         'lamb': 1000,
+    #         'verbose': False
+    #     },
+    # )
 
     detect_changepoints(
         input_dir=input_dir,
-        output_dir=output_dir+'/cusum_c',
-        detection_func=cusum_wrapper,
+        output_dir=output_dir+'/logaritmica_H',
+        detection_func=vwcd_MAP,
         default_params={
-            'f0_params': (cenario['mc'], 1),
-            'f1_params': (cenario['mb'], 1),
-            'threshold': np.log(1000)
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': 'logaritmica_H',
+            'verbose': False
         },
     )
-    
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/pelt_ed',
-    #     detection_func=pelt_wrapper,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'mode': 'ed'
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/pelt_rbf_bic',
-    #     detection_func=pelt_wrapper,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'mode': 'rbf',
-    #         'penalty':'BIC'
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/pelt_rbf_aic',
-    #     detection_func=pelt_wrapper,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'mode': 'rbf',
-    #         'penalty':'AIC'
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/pelt_rbf_p3',
-    #     detection_func=pelt_wrapper,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'mode': 'rbf',
-    #         'penalty':None
-    #     },
-    # )
-
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/mean',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'mean',
-    #         'verbose': False
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/multiplicativa',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'multiplicativa',
-    #         'verbose': False
-    #     },
-    # )
-
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/logaritmica_KL',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'logaritmica_KL',
-    #         'verbose': False
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/logaritmica_H',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'logaritmica_H',
-    #         'verbose': False
-    #     },
-    # )
 
     # recalculate_means_and_stds_by_reference(
     #     input_dir=output_dir+'/logaritmica_KL/',
     #     output_dir=output_dir+'/logaritmica_KL_recalc/',
     #     reference_feature='throughput_download'
     # )
-
-
-

@@ -43,26 +43,28 @@ def generate_series_fixed_cp(N, means, stds, t):
 
     return time_series, states       
 
-def plot_series(time_series, states):
+def plot_series(time_series, states, states_labels=None, title="Série Temporal Sintética", figsize=(12, 6)):
     N = len(time_series)
-    n_states = np.max(states) + 1
     cmap = plt.get_cmap('tab10')
+    n_states = np.max(states) + 1
     colors = [cmap(i % 10) for i in range(n_states)]
-    fig, ax = plt.subplots(figsize=(12, 6))
+    if states_labels is None:
+       states_labels = ["Estado " + str(state) for state in states]
+    fig, ax = plt.subplots(figsize=figsize)
     legend_added = [False] * n_states
     for i in range(1, N):
         current_state = states[i]
         current_color = colors[current_state]
         label = None
         if not legend_added[current_state]:
-            label = f"Estado {current_state}"
+            label = states_labels[i]
             legend_added[current_state] = True
         ax.plot([i-1, i], 
                 [time_series[i-1], time_series[i]], 
                 color=current_color, 
                 label=label)
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    ax.set_title("Série Temporal Gerada por Cadeia de Markov Oculta")
+    ax.set_title(title)
     ax.set_xlabel("Tempo")
     ax.set_ylabel("Valor")
     ax.grid()
@@ -120,10 +122,10 @@ if __name__ == "__main__":
     
     # Gerar dados
     generate_csvs(
-        output_folder='time_series/cenario_3c',
-        generator_func=generate_series_fixed_cp,
-        num_pairs=100,
-        N=300, means=[0, 1], stds=[1, 1], t=150
+        output_folder='time_series/HMM',
+        generator_func=generate_series_hmm,
+        num_pairs=10,
+        N=300, means= [1, 10, 10, 10], stds=[1, 3, 1, 3], p=0.995
     )
     # Cenario 1b: means = [0, 0.5], stds = [1, 1], t = 150, N = 300
     # Cenario 1c: means = [0, -0.5], stds = [1, 1], t = 150, N = 300
