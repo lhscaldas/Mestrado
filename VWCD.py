@@ -13,7 +13,6 @@ def pos_fun(ll, prior, tau):
 def agg_linear(vote_list):
     vote_list = np.array(vote_list)
     p = vote_list.mean()
-    # print(f"agg_linear: votes={vote_list}, p={p}")
     return p
 
 def agg_multiplicativa(vote_list):
@@ -48,6 +47,11 @@ def ws_H_exp(H_list):
 def ws_H(H_list):
     ws_raw = 1 / (np.array(H_list) + 1e-9)
     ws = ws_raw / ws_raw.sum()
+    return ws
+
+def ws_U(vote_list):
+    ws_raw = np.ones_like(vote_list)
+    ws = ws_raw / (len(vote_list) + 1e-9)
     return ws
 
 # VWCD

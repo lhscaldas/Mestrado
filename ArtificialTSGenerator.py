@@ -122,10 +122,10 @@ if __name__ == "__main__":
     
     # Gerar dados
     generate_csvs(
-        output_folder='time_series/HMM',
-        generator_func=generate_series_hmm,
-        num_pairs=10,
-        N=300, means= [1, 10, 10, 10], stds=[1, 3, 1, 3], p=0.995
+        output_folder='time_series/teste_m5',
+        generator_func=generate_series_fixed_cp,
+        num_pairs=100,
+        N=300, means= [1, 5], stds=[1, 1], t=150
     )
     # Cenario 1b: means = [0, 0.5], stds = [1, 1], t = 150, N = 300
     # Cenario 1c: means = [0, -0.5], stds = [1, 1], t = 150, N = 300

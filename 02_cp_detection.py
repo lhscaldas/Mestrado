@@ -5,37 +5,70 @@ import ruptures as rpt
 import time
 import os
 
-from rpy2.robjects.packages import importr
-from rpy2.robjects.vectors import FloatVector
-changepoint_np = importr('changepoint.np')
-changepoint = importr('changepoint')
+def cusum(X, f0_params, f1_params, threshold):
 
-def pelt_wrapper(X, mode='rbf', penalty=None, **kwargs):
+    def gaussian_log_pdf(x, mean, std):
+        return -0.5 * np.log(2 * np.pi) - np.log(std) - 0.5 * ((x - mean) / std)**2
+
+    n = len(X)
+    g = np.zeros(n)
+    alarm_time = None
+    
+    current_g = 0.0
+    
+    # Define as funções com os parâmetros fixos passados
+    f0_log = lambda x: gaussian_log_pdf(x, mean=f0_params[0], std=f0_params[1])
+    f1_log = lambda x: gaussian_log_pdf(x, mean=f1_params[0], std=f1_params[1])
+
+    for t in range(n):
+        # 1. Log-Likelihood Ratio
+        llr = f1_log(X[t]) - f0_log(X[t])
+        
+        # 2. Atualização Recursiva
+        current_g = max(0, current_g + llr)
+        g[t] = current_g
+        
+        # 3. Verificação do Limiar (CORRIGIDO)
+        if current_g >= threshold:
+            alarm_time = t
+            break
+            
+    return alarm_time, g
+
+def cusum_wrapper(X, f0_params=(0,1), f1_params=(1,1), threshold=5, **kwargs):
     startTime = time.time()
-
-    if mode == 'rbf':
-        algo = rpt.Pelt(model='rbf').fit(X)
-        pen = 3
-        if penalty == 'BIC':
-         pen = np.log(len(X)) # BIC
-        elif penalty == 'AIC':
-         pen = 2
-        result = algo.predict(pen=pen)
-        CP = np.array(result[:-1]).astype(int)
-    elif mode == 'ed':
-        CP = [int(i) for i in changepoint.cpts(changepoint_np.cpt_np(FloatVector(X), penalty='MBIC', minseglen=4))]
-        CP = np.array(CP[:-1]).astype(int)
-    else:
-        raise ValueError("Modo desconhecido. Use 'rbf' ou 'ed'.")
-   
+    alarm_time, g = cusum(X, f0_params, f1_params, threshold)
+    CP = []
+    if alarm_time is not None:
+        last_zero = np.where(g[:alarm_time] == 0)[0]
+        est_cp = last_zero[-1] + 1 if last_zero.size > 0 else 0
+        CP.append(est_cp)
     endTime = time.time()
     elapsedTime = endTime - startTime
+    vote_counts = np.zeros_like(X) # Estes conceitos não existem no CuSum
+    agg_probs = np.zeros_like(X) # Estes conceitos não existem no CuSum
+    votes = [[] for _ in range(len(X))] # Estes conceitos não existem no CuSum
+    windows = [] # Estes conceitos não existem no CuSum
+    return CP, elapsedTime, vote_counts, agg_probs, votes, windows
 
-    # Estes conceitos não existem no PELT
-    vote_counts = np.zeros_like(X)
-    agg_probs = np.zeros_like(X)
 
-    return CP.tolist(), elapsedTime, vote_counts, agg_probs
+def pelt_wrapper(X, penalty=3, **kwargs):
+    startTime = time.time()
+    algo = rpt.Pelt(model='rbf').fit(X)
+    pen = penalty
+    if penalty == 'BIC':
+        pen = np.log(len(X)) # BIC
+    elif penalty == 'AIC':
+        pen = 2
+    result = algo.predict(pen=pen)
+    CP = np.array(result[:-1]).astype(int)
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    vote_counts = np.zeros_like(X) # Estes conceitos não existem no PELT
+    agg_probs = np.zeros_like(X) # Estes conceitos não existem no PELT
+    votes = [[] for _ in range(len(X))] # Estes conceitos não existem no PELT
+    windows = [] # Estes conceitos não existem no PELT
+    return CP.tolist(), elapsedTime, vote_counts, agg_probs, votes, windows
 
 def detect_changepoints(input_dir, output_dir, detection_func, default_params):
 
@@ -54,7 +87,7 @@ def detect_changepoints(input_dir, output_dir, detection_func, default_params):
                 
                 current_params['X'] = y
 
-                CP, elapsedTime, vote_counts, agg_probs = detection_func(**current_params)
+                CP, elapsedTime, vote_counts, agg_probs, _, _ = detection_func(**current_params)
                 CP = np.array(CP)
                 
                 changepoints = np.zeros(len(y), dtype=int)
@@ -190,152 +223,124 @@ def recalculate_means_and_stds_by_reference(input_dir, output_dir, reference_fea
 
     print(f"\n✅ Processo concluído. Arquivos atualizados salvos em: {output_dir}")
 
-import numpy as np
-
-def cusum(X, f0_params, f1_params, threshold):
-
-    def gaussian_log_pdf(x, mean, std):
-        return -0.5 * np.log(2 * np.pi) - np.log(std) - 0.5 * ((x - mean) / std)**2
-
-    n = len(X)
-    g = np.zeros(n)
-    alarm_time = None
-    
-    current_g = 0.0
-    
-    # Define as funções com os parâmetros fixos passados
-    f0_log = lambda x: gaussian_log_pdf(x, mean=f0_params[0], std=f0_params[1])
-    f1_log = lambda x: gaussian_log_pdf(x, mean=f1_params[0], std=f1_params[1])
-
-    for t in range(n):
-        # 1. Log-Likelihood Ratio
-        llr = f1_log(X[t]) - f0_log(X[t])
-        
-        # 2. Atualização Recursiva
-        current_g = max(0, current_g + llr)
-        g[t] = current_g
-        
-        # 3. Verificação do Limiar (CORRIGIDO)
-        if current_g >= threshold:
-            alarm_time = t
-            break
-            
-    return alarm_time, g
-
-def cusum_wrapper(X, f0_params=(0,1), f1_params=(1,1), threshold=5, **kwargs):
-    startTime = time.time()
-    alarm_time, g = cusum(X, f0_params, f1_params, threshold)
-    CP = []
-    if alarm_time is not None:
-        last_zero = np.where(g[:alarm_time] == 0)[0]
-        est_cp = last_zero[-1] + 1 if last_zero.size > 0 else 0
-        CP.append(est_cp)
-    endTime = time.time()
-    elapsedTime = endTime - startTime
-    vote_counts = np.zeros_like(X) # Estes conceitos não existem no CuSum
-    agg_probs = np.zeros_like(X) # Estes conceitos não existem no CuSum
-    return CP, elapsedTime, vote_counts, agg_probs
 
 if __name__ == '__main__':
-    THRESHOLD = 0.90
-    WINDOW_SIZE = 50
+    THRESHOLD = 0.70
+    WINDOW_SIZE = 20
     
-    cenario_dir = 'teste'
+    cenario_dir = 'teste_m5'
     input_dir = 'time_series/' + cenario_dir
     output_dir = 'changepoints/' + cenario_dir
     
-    # cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
-    # cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
-    # cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
-    # cenario_params = cenario_1
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/cusum_b',
-    #     detection_func=cusum_wrapper,
-    #     default_params={
-    #         'f0_params': (cenario_params['m0'], 1),
-    #         'f1_params': (cenario_params['mb'], 1),
-    #         'threshold': np.log(1000)
-    #     },
-    # )
+    cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
+    cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
+    cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
+    cenario_params = cenario_2
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/cusum',
+        detection_func=cusum_wrapper,
+        default_params={
+            'f0_params': (cenario_params['m0'], 1),
+            # 'f1_params': (cenario_params['mb'], 1),
+            'f1_params': (5, 1),
+            'threshold': np.log(1000)
+        },
+    )
 
     detect_changepoints(
         input_dir=input_dir,
-        output_dir=output_dir+'/otima_H_l1',
-        detection_func=vwcd_MAP,
+        output_dir=output_dir+'/pelt',
+        detection_func=pelt_wrapper,
+        default_params={
+            'penalty': 3
+        },
+    )
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/linear',
+        detection_func=vwcd,
         default_params={
             'w': WINDOW_SIZE,
             'vote_p_thr': THRESHOLD,
-            'aggreg': 'otima_H',
+            'aggreg': agg_linear,
+            'pesos': None,
+            'lamb': None,
+            'verbose': False
+        },
+    )
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/multiplicativa',
+        detection_func=vwcd,
+        default_params={
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': agg_multiplicativa,
+            'pesos': None,
+            'lamb': None,
+            'verbose': False
+        },
+    )
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/logaritmica_H',
+        detection_func=vwcd,
+        default_params={
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': agg_logaritmica,
+            'pesos': ws_H,
+            'lamb': None,
+            'verbose': False
+        },
+    )
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/otima_H',
+        detection_func=vwcd,
+        default_params={
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': agg_otima,
+            'pesos': ws_H,
             'lamb': 1,
             'verbose': False
         },
     )
 
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/otima_H_l0',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'otima_H',
-    #         'lamb': 0,
-    #         'verbose': False
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/otima_H_l05',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'otima_H',
-    #         'lamb': 0.5,
-    #         'verbose': False
-    #     },
-    # )
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/otima_H_l01',
-    #     detection_func=vwcd,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'otima_H',
-    #         'lamb': 0.1,
-    #         'verbose': False
-    #     },
-    # )
-
-
-    # detect_changepoints(
-    #     input_dir=input_dir,
-    #     output_dir=output_dir+'/otima_H_l1000',
-    #     detection_func=vwcd_MAP,
-    #     default_params={
-    #         'w': WINDOW_SIZE,
-    #         'vote_p_thr': THRESHOLD,
-    #         'aggreg': 'otima_H',
-    #         'lamb': 1000,
-    #         'verbose': False
-    #     },
-    # )
-
     detect_changepoints(
         input_dir=input_dir,
-        output_dir=output_dir+'/logaritmica_H',
-        detection_func=vwcd_MAP,
+        output_dir=output_dir+'/logaritmica_U',
+        detection_func=vwcd,
         default_params={
             'w': WINDOW_SIZE,
             'vote_p_thr': THRESHOLD,
-            'aggreg': 'logaritmica_H',
+            'aggreg': agg_logaritmica,
+            'pesos': ws_U,
+            'lamb': None,
             'verbose': False
         },
     )
+
+    detect_changepoints(
+        input_dir=input_dir,
+        output_dir=output_dir+'/otima_U',
+        detection_func=vwcd,
+        default_params={
+            'w': WINDOW_SIZE,
+            'vote_p_thr': THRESHOLD,
+            'aggreg': agg_otima,
+            'pesos': ws_U,
+            'lamb': 1,
+            'verbose': False
+        },
+    )
+
 
     # recalculate_means_and_stds_by_reference(
     #     input_dir=output_dir+'/logaritmica_KL/',
