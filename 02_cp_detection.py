@@ -228,34 +228,34 @@ if __name__ == '__main__':
     THRESHOLD = 0.70
     WINDOW_SIZE = 20
     
-    cenario_dir = 'teste_m5'
+    cenario_dir = 'teste_m10'
     input_dir = 'time_series/' + cenario_dir
     output_dir = 'changepoints/' + cenario_dir
     
-    cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
-    cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
-    cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
-    cenario_params = cenario_2
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/cusum',
-        detection_func=cusum_wrapper,
-        default_params={
-            'f0_params': (cenario_params['m0'], 1),
-            # 'f1_params': (cenario_params['mb'], 1),
-            'f1_params': (5, 1),
-            'threshold': np.log(1000)
-        },
-    )
+    # cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
+    # cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
+    # cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
+    # cenario_params = cenario_2
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/cusum',
+    #     detection_func=cusum_wrapper,
+    #     default_params={
+    #         'f0_params': (cenario_params['m0'], 1),
+    #         # 'f1_params': (cenario_params['mb'], 1),
+    #         'f1_params': (10, 1),
+    #         'threshold': np.log(1000)
+    #     },
+    # )
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/pelt',
-        detection_func=pelt_wrapper,
-        default_params={
-            'penalty': 3
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/pelt',
+    #     detection_func=pelt_wrapper,
+    #     default_params={
+    #         'penalty': 3
+    #     },
+    # )
 
     detect_changepoints(
         input_dir=input_dir,

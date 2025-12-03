@@ -55,7 +55,7 @@ def ws_U(vote_list):
     return ws
 
 # VWCD
-def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=None, lamb=None, verbose=False):
+def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=None, lamb=None, verbose=False):
     def loglik(x, loc, scale):
         n = len(x)
         c = 1 / np.sqrt(2 * np.pi)
