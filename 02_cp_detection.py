@@ -225,6 +225,8 @@ def recalculate_means_and_stds_by_reference(input_dir, output_dir, reference_fea
 
 
 if __name__ == '__main__':
+    input("Confira o nome das pastas de input e output dentro do código. Pressione Enter para continuar...")
+
     THRESHOLD = 0.70
     WINDOW_SIZE = 20
     
@@ -257,61 +259,61 @@ if __name__ == '__main__':
     #     },
     # )
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/linear',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': agg_linear,
-            'pesos': None,
-            'lamb': None,
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/linear',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': agg_linear,
+    #         'pesos': None,
+    #         'lamb': None,
+    #         'verbose': False
+    #     },
+    # )
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/multiplicativa',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': agg_multiplicativa,
-            'pesos': None,
-            'lamb': None,
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/multiplicativa',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': agg_multiplicativa,
+    #         'pesos': None,
+    #         'lamb': None,
+    #         'verbose': False
+    #     },
+    # )
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/logaritmica_H',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': agg_logaritmica,
-            'pesos': ws_H,
-            'lamb': None,
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/logaritmica_H',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': agg_logaritmica,
+    #         'pesos': ws_H,
+    #         'lamb': None,
+    #         'verbose': False
+    #     },
+    # )
 
-    detect_changepoints(
-        input_dir=input_dir,
-        output_dir=output_dir+'/otima_H',
-        detection_func=vwcd,
-        default_params={
-            'w': WINDOW_SIZE,
-            'vote_p_thr': THRESHOLD,
-            'aggreg': agg_otima,
-            'pesos': ws_H,
-            'lamb': 1,
-            'verbose': False
-        },
-    )
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/otima_H',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': agg_otima,
+    #         'pesos': ws_H,
+    #         'lamb': 1,
+    #         'verbose': False
+    #     },
+    # )
 
     detect_changepoints(
         input_dir=input_dir,
@@ -327,20 +329,34 @@ if __name__ == '__main__':
         },
     )
 
+    # detect_changepoints(
+    #     input_dir=input_dir,
+    #     output_dir=output_dir+'/otima_U',
+    #     detection_func=vwcd,
+    #     default_params={
+    #         'w': WINDOW_SIZE,
+    #         'vote_p_thr': THRESHOLD,
+    #         'aggreg': agg_otima,
+    #         'pesos': ws_U,
+    #         'lamb': 1,
+    #         'verbose': False
+    #     },
+    # )
+    
     detect_changepoints(
         input_dir=input_dir,
-        output_dir=output_dir+'/otima_U',
+        output_dir=output_dir+'/logaritmica_O',
         detection_func=vwcd,
         default_params={
             'w': WINDOW_SIZE,
             'vote_p_thr': THRESHOLD,
-            'aggreg': agg_otima,
-            'pesos': ws_U,
-            'lamb': 1,
+            'aggreg': agg_logaritmica,
+            'pesos': ws_O,
+            'lamb': None,
+            'lamb_w': 1,
             'verbose': False
         },
     )
-
 
     # recalculate_means_and_stds_by_reference(
     #     input_dir=output_dir+'/logaritmica_KL/',

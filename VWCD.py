@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import betabinom
+from scipy.optimize import minimize
 import time
 
 # Normalização
@@ -54,8 +55,15 @@ def ws_U(vote_list):
     ws = ws_raw / (len(vote_list) + 1e-9)
     return ws
 
+def ws_O(votes, lamb_w=1):
+    v = np.array(votes).reshape(-1, 1)
+    n = v.shape[0]
+    L = np.log(np.clip(v, 1e-6, 1-1e-6) / (1 - np.clip(v, 1e-6, 1-1e-6))) # logit p_{i,t}
+    obj = lambda w: np.sum(w @ (L - w @ L)**2) + lamb_w * np.sum(w * np.log(np.clip(w, 1e-12, 1.))) # função objetivo (sem o somatório externo)
+    return minimize(obj, np.ones(n)/n, method='SLSQP', bounds=[(0,1)]*n, constraints={'type':'eq','fun':lambda x: np.sum(x)-1}).x
+
 # VWCD
-def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=None, lamb=None, verbose=False):
+def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1, verbose=False):
     def loglik(x, loc, scale):
         n = len(x)
         c = 1 / np.sqrt(2 * np.pi)
@@ -120,14 +128,25 @@ def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=None, lamb=None, verb
         num_votes = len(votes_list)
 
         if num_votes > 0:
-            if pesos is not None:
+            if (pesos == ws_H) or (pesos == ws_H_exp):
                 ws = pesos(H_list)
-                if lamb is not None:
-                    agg_vote = agg_otima(votes_list, ws, lamb)
-                else:
-                    agg_vote = aggreg(votes_list, ws)
+            elif pesos == ws_O:
+                ws = pesos(votes_list, lamb_w)
+            elif pesos == ws_U:
+                ws = pesos(votes_list)
             else:
+                print("Método de pesos desconhecido. Usando pesos uniformes.")
+                ws = np.ones(len(votes_list)) / len(votes_list)
+
+            if aggreg == agg_otima:
+                agg_vote = aggreg(votes_list, ws, lamb)
+            elif aggreg == agg_logaritmica:
+                agg_vote = aggreg(votes_list, ws)
+            elif aggreg == agg_linear:
                 agg_vote = aggreg(votes_list)
+            else:
+                print("Método de agregação desconhecido. Usando agregação linear.")
+                agg_vote = agg_linear(votes_list)
         else:
             agg_vote = 0.0
 
