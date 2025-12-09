@@ -63,7 +63,7 @@ def ws_O(votes, lamb_w=1):
     return minimize(obj, np.ones(n)/n, method='SLSQP', bounds=[(0,1)]*n, constraints={'type':'eq','fun':lambda x: np.sum(x)-1}).x
 
 # VWCD
-def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1, verbose=False):
+def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1, verbose=False):
     def loglik(x, loc, scale):
         n = len(x)
         c = 1 / np.sqrt(2 * np.pi)
@@ -134,15 +134,15 @@ def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1
                 ws = pesos(votes_list, lamb_w)
             elif pesos == ws_U:
                 ws = pesos(votes_list)
-            else:
-                print("Método de pesos desconhecido. Usando pesos uniformes.")
+            else: # Método de pesos desconhecido. Usando pesos uniformes.
+                # print("")
                 ws = np.ones(len(votes_list)) / len(votes_list)
 
             if aggreg == agg_otima:
                 agg_vote = aggreg(votes_list, ws, lamb)
             elif aggreg == agg_logaritmica:
                 agg_vote = aggreg(votes_list, ws)
-            elif aggreg == agg_linear:
+            elif (aggreg == agg_linear) or (aggreg == agg_multiplicativa):
                 agg_vote = aggreg(votes_list)
             else:
                 print("Método de agregação desconhecido. Usando agregação linear.")

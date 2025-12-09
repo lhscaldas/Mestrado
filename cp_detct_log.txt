@@ -1,0 +1,104 @@
+Processamento concluído em 6.51 segundos. Resultados salvos em: changepoints/teste_m3/cusum
+Processamento concluído em 9.06 segundos. Resultados salvos em: changepoints/teste_m3/pelt
+Processamento concluído em 36.48 segundos. Resultados salvos em: changepoints/teste_m3/linear
+Processamento concluído em 40.20 segundos. Resultados salvos em: changepoints/teste_m3/multiplicativa
+Processamento concluído em 75.07 segundos. Resultados salvos em: changepoints/teste_m3/logaritmica_H
+Processamento concluído em 74.95 segundos. Resultados salvos em: changepoints/teste_m3/otima_H
+Processamento concluído em 74.96 segundos. Resultados salvos em: changepoints/teste_m3/logaritmica_U
+Processamento concluído em 74.46 segundos. Resultados salvos em: changepoints/teste_m3/otima_U
+Processamento concluído em 1334.69 segundos. Resultados salvos em: changepoints/teste_m3/logaritmica_O
+Processamento concluído em 6.67 segundos. Resultados salvos em: changepoints/teste_m5/cusum
+Processamento concluído em 7.73 segundos. Resultados salvos em: changepoints/teste_m5/pelt
+Processamento concluído em 32.94 segundos. Resultados salvos em: changepoints/teste_m5/linear
+Processamento concluído em 33.78 segundos. Resultados salvos em: changepoints/teste_m5/multiplicativa
+Processamento concluído em 34.35 segundos. Resultados salvos em: changepoints/teste_m5/logaritmica_H
+Processamento concluído em 34.98 segundos. Resultados salvos em: changepoints/teste_m5/otima_H
+Processamento concluído em 34.65 segundos. Resultados salvos em: changepoints/teste_m5/logaritmica_U
+Processamento concluído em 34.55 segundos. Resultados salvos em: changepoints/teste_m5/otima_U
+Processamento concluído em 1588.19 segundos. Resultados salvos em: changepoints/teste_m5/logaritmica_O
+Processamento concluído em 9.29 segundos. Resultados salvos em: changepoints/teste_s3/cusum
+Processamento concluído em 12.51 segundos. Resultados salvos em: changepoints/teste_s3/pelt
+Processamento concluído em 72.45 segundos. Resultados salvos em: changepoints/teste_s3/linear
+Processamento concluído em 73.14 segundos. Resultados salvos em: changepoints/teste_s3/multiplicativa
+Processamento concluído em 70.01 segundos. Resultados salvos em: changepoints/teste_s3/logaritmica_H
+Processamento concluído em 75.18 segundos. Resultados salvos em: changepoints/teste_s3/otima_H
+Processamento concluído em 40.95 segundos. Resultados salvos em: changepoints/teste_s3/logaritmica_U
+Processamento concluído em 35.70 segundos. Resultados salvos em: changepoints/teste_s3/otima_U
+Processamento concluído em 1515.11 segundos. Resultados salvos em: changepoints/teste_s3/logaritmica_O
+Processamento concluído em 8.54 segundos. Resultados salvos em: changepoints/teste_s10/cusum
+Processamento concluído em 11.24 segundos. Resultados salvos em: changepoints/teste_s10/pelt
+Processamento concluído em 73.31 segundos. Resultados salvos em: changepoints/teste_s10/linear
+Processamento concluído em 73.61 segundos. Resultados salvos em: changepoints/teste_s10/multiplicativa
+Processamento concluído em 73.63 segundos. Resultados salvos em: changepoints/teste_s10/logaritmica_H
+Processamento concluído em 74.10 segundos. Resultados salvos em: changepoints/teste_s10/otima_H
+Processamento concluído em 72.83 segundos. Resultados salvos em: changepoints/teste_s10/logaritmica_U
+Processamento concluído em 73.89 segundos. Resultados salvos em: changepoints/teste_s10/otima_U
+Processamento concluído em 1672.60 segundos. Resultados salvos em: changepoints/teste_s10/logaritmica_O
+Processamento concluído em 7.02 segundos. Resultados salvos em: changepoints/teste_s20/cusum
+Processamento concluído em 8.21 segundos. Resultados salvos em: changepoints/teste_s20/pelt
+Processamento concluído em 36.57 segundos. Resultados salvos em: changepoints/teste_s20/linear
+Processamento concluído em 35.83 segundos. Resultados salvos em: changepoints/teste_s20/multiplicativa
+Processamento concluído em 47.77 segundos. Resultados salvos em: changepoints/teste_s20/logaritmica_H
+Processamento concluído em 75.41 segundos. Resultados salvos em: changepoints/teste_s20/otima_H
+Processamento concluído em 74.07 segundos. Resultados salvos em: changepoints/teste_s20/logaritmica_U
+Processamento concluído em 74.95 segundos. Resultados salvos em: changepoints/teste_s20/otima_U
+Processamento concluído em 1468.37 segundos. Resultados salvos em: changepoints/teste_s20/logaritmica_O
+
+
+tempo,método,cenário
+6.51,cusum,teste_m3
+9.06,pelt,teste_m3
+36.48,linear,teste_m3
+40.2,multiplicativa,teste_m3
+75.07,logaritmica_H,teste_m3
+74.95,otima_H,teste_m3
+74.96,logaritmica_U,teste_m3
+74.46,otima_U,teste_m3
+1334.69,logaritmica_O,teste_m3
+6.67,cusum,teste_m5
+7.73,pelt,teste_m5
+32.94,linear,teste_m5
+33.78,multiplicativa,teste_m5
+34.35,logaritmica_H,teste_m5
+34.98,otima_H,teste_m5
+34.65,logaritmica_U,teste_m5
+34.55,otima_U,teste_m5
+1588.19,logaritmica_O,teste_m5
+9.29,cusum,teste_s3
+12.51,pelt,teste_s3
+72.45,linear,teste_s3
+73.14,multiplicativa,teste_s3
+70.01,logaritmica_H,teste_s3
+75.18,otima_H,teste_s3
+40.95,logaritmica_U,teste_s3
+35.7,otima_U,teste_s3
+1515.11,logaritmica_O,teste_s3
+8.54,cusum,teste_s10
+11.24,pelt,teste_s10
+73.31,linear,teste_s10
+73.61,multiplicativa,teste_s10
+73.63,logaritmica_H,teste_s10
+74.1,otima_H,teste_s10
+72.83,logaritmica_U,teste_s10
+73.89,otima_U,teste_s10
+1672.6,logaritmica_O,teste_s10
+7.02,cusum,teste_s20
+8.21,pelt,teste_s20
+36.57,linear,teste_s20
+35.83,multiplicativa,teste_s20
+47.77,logaritmica_H,teste_s20
+75.41,otima_H,teste_s20
+74.07,logaritmica_U,teste_s20
+74.95,otima_U,teste_s20
+1468.37,logaritmica_O,teste_s20
+
+Método,Tempo Médio (s)
+cusum,7.61
+pelt,9.75
+linear,50.35
+multiplicativa,51.31
+otima_U,58.71
+logaritmica_U,59.49
+logaritmica_H,60.17
+otima_H,66.92
+logaritmica_O,1515.79
