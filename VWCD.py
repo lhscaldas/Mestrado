@@ -3,13 +3,6 @@ from scipy.stats import betabinom
 from scipy.optimize import minimize
 import time
 
-# Normalização
-def pos_fun(ll, prior, tau):
-    c = np.nanmax(ll)
-    lse = c + np.log(np.nansum(prior * np.exp(ll - c)))
-    p = ll[tau] + np.log(prior[tau]) - lse
-    return np.exp(p)
-
 # Agregações
 def agg_linear(vote_list):
     vote_list = np.array(vote_list)
@@ -69,6 +62,12 @@ def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=
         c = 1 / np.sqrt(2 * np.pi)
         y = n * np.log(c / scale) - (1 / (2 * scale**2)) * ((x - loc) ** 2).sum()
         return y
+    
+    def pos_fun(ll, prior, tau):
+        c = np.nanmax(ll)
+        lse = c + np.log(np.nansum(prior * np.exp(ll - c)))
+        p = ll[tau] + np.log(prior[tau]) - lse
+        return np.exp(p)
 
     N = len(X)
     i_ = np.arange(0, w - 3)
@@ -152,7 +151,7 @@ def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=
 
         agg_probs[n - w + 1] = agg_vote
 
-        if agg_vote > vote_p_thr:
+        if agg_vote >= vote_p_thr:
             if verbose:
                 print(f'Changepoint at n={n-w+1}, p={agg_vote}, n={num_votes} votes')
             lcp = n - w + 1

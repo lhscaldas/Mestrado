@@ -211,29 +211,29 @@ def recalculate_means_and_stds_by_reference(input_dir, output_dir, reference_fea
 if __name__ == '__main__':
     input("Confira o nome das pastas de input e output dentro do código. Pressione Enter para continuar...")
 
-    THRESHOLD = 0.70
+    print("Iniciando detecção de changepoints nos cenários...")
+
+    THRESHOLD = 0.7
+    
     WINDOW_SIZE = 20
 
-    CENARIO_DIRS = ['teste_m3', 'teste_m5', 'teste_m10', 'teste_s3', 'teste_s10', 'teste_s20']
-    F1_PARAMS = [(3,1), (5,1), (10,1), (0,3), (0,10), (0,20)]
+    AB = 30
 
-    for cenario_dir, f1_params in zip(CENARIO_DIRS, F1_PARAMS):
+    CENARIO_DIRS = ['teste_m110', 'teste_m150', 'teste_m200', 'teste_m200s20', 'teste_m200s30', 'teste_m200s40']
+    F0_PARAMS = [(100,10), (100,10), (100,10), (200,10), (200,10), (200,10)]
+    F1_PARAMS = [(110,10), (150,10), (200,10), (200,20), (200,30), (200,40)]
+
+    for cenario_dir, f0_params, f1_params in zip(CENARIO_DIRS, F0_PARAMS, F1_PARAMS):
     
-        # cenario_dir = 'teste_m5'
         input_dir = 'time_series/' + cenario_dir
         output_dir = 'changepoints/' + cenario_dir
-
-        # Artigo do Don Towsley
-        # cenario_1 = {'m0': 0, 'mb': 0.5, 'mc': -0.5}
-        # cenario_2 = {'m0': 0, 'mb': 1.2, 'mc': 0.7}
-        # cenario_3 = {'m0': 0, 'mb': 0.5, 'mc': 1}
 
         detect_changepoints(
             input_dir=input_dir,
             output_dir=output_dir+'/cusum',
             detection_func=cusum_wrapper,
             default_params={
-                'f0_params': (0, 1),
+                'f0_params': f0_params,
                 'f1_params': f1_params,
                 'threshold': np.log(1000)
             },
@@ -255,6 +255,7 @@ if __name__ == '__main__':
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
+                'ab': AB,
                 'aggreg': agg_linear,
                 'pesos': None,
                 'lamb': None,
@@ -269,6 +270,7 @@ if __name__ == '__main__':
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
+                'ab': AB,
                 'aggreg': agg_multiplicativa,
                 'pesos': None,
                 'lamb': None,
@@ -283,6 +285,7 @@ if __name__ == '__main__':
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
+                'ab': AB,
                 'aggreg': agg_logaritmica,
                 'pesos': ws_H,
                 'lamb': None,
@@ -297,6 +300,7 @@ if __name__ == '__main__':
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
+                'ab': AB,
                 'aggreg': agg_otima,
                 'pesos': ws_H,
                 'lamb': 1,
@@ -311,6 +315,7 @@ if __name__ == '__main__':
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
+                'ab': AB,
                 'aggreg': agg_logaritmica,
                 'pesos': ws_U,
                 'lamb': None,
@@ -325,6 +330,7 @@ if __name__ == '__main__':
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
+                'ab': AB,
                 'aggreg': agg_otima,
                 'pesos': ws_U,
                 'lamb': 1,
@@ -339,6 +345,7 @@ if __name__ == '__main__':
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
+                'ab': AB,
                 'aggreg': agg_logaritmica,
                 'pesos': ws_O,
                 'lamb': None,
