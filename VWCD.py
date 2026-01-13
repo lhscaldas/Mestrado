@@ -4,8 +4,8 @@ from scipy.optimize import minimize
 import time
 
 # Agregações
-def agg_linear(vote_list):
-    vote_list = np.array(vote_list)
+def agg_linear(vote_list, ws):
+    vote_list = np.array(vote_list*ws)
     p = vote_list.mean()
     return p
 
@@ -144,7 +144,7 @@ def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1
                 agg_vote = aggreg(votes_list)
             else:
                 print("Método de agregação desconhecido. Usando agregação linear.")
-                agg_vote = agg_linear(votes_list)
+                agg_vote = agg_linear(votes_list, ws)
         else:
             agg_vote = 0.0
 
@@ -220,8 +220,6 @@ def vwcd_2(X, w, vote_p_thr, ab=30, aggreg=agg_linear, lamb=1, verbose=False):
         
         pos_valid = pos[~np.isnan(pos)]
         windows.append(pos_valid.copy()) 
-        pos_safe = np.clip(pos_valid, 1e-10, 1.0)
-        H_janela = -np.sum(pos_safe * np.log(pos_safe))
 
         for nu in range(2, w - 1):
             p_vote_h = pos[nu]
@@ -245,7 +243,7 @@ def vwcd_2(X, w, vote_p_thr, ab=30, aggreg=agg_linear, lamb=1, verbose=False):
                 agg_vote = aggreg(votes_list)
             else:
                 print("Método de agregação desconhecido. Usando agregação linear.")
-                agg_vote = agg_linear(votes_list)
+                agg_vote = agg_linear(votes_list, ws)
         else:
             agg_vote = 0.0
 
@@ -259,5 +257,4 @@ def vwcd_2(X, w, vote_p_thr, ab=30, aggreg=agg_linear, lamb=1, verbose=False):
 
     endTime = time.time()
     elapsedTime = endTime - startTime
-    return CP, elapsedTime, vote_counts, agg_probs, votes, windows
     return CP, elapsedTime, vote_counts, agg_probs, votes, windows
