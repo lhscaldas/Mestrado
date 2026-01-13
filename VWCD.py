@@ -105,7 +105,6 @@ def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1
             LLR_h.append(llr)
 
         LLR_h = np.array(LLR_h)
-
         pos = pos_fun(LLR_h, prior_w)
         pos = np.concatenate(([np.nan, np.nan], pos, [np.nan]))    
         
@@ -213,8 +212,6 @@ def vwcd_2(X, w, vote_p_thr, ab=30, aggreg=agg_linear, lamb=1, verbose=False):
             LLR_h.append(llr)
 
         LLR_h = np.array(LLR_h)
-
-        # pos = pos_fun(LLR_h, prior_w)
         pos = logsumexp_norm(LLR_h)
         pos = np.concatenate(([np.nan, np.nan], pos, [np.nan]))    
         
