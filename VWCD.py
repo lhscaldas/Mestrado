@@ -137,9 +137,9 @@ def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1
 
             if aggreg == agg_otima:
                 agg_vote = aggreg(votes_list, ws, lamb)
-            elif aggreg == agg_logaritmica:
+            elif aggreg == agg_logaritmica or (aggreg == agg_linear):
                 agg_vote = aggreg(votes_list, ws)
-            elif (aggreg == agg_linear) or (aggreg == agg_multiplicativa):
+            elif (aggreg == agg_multiplicativa):
                 agg_vote = aggreg(votes_list)
             else:
                 print("Método de agregação desconhecido. Usando agregação linear.")
@@ -234,9 +234,9 @@ def vwcd_2(X, w, vote_p_thr, ab=30, aggreg=agg_linear, lamb=1, verbose=False):
 
             if aggreg == agg_otima:
                 agg_vote = aggreg(votes_list, ws, lamb)
-            elif aggreg == agg_logaritmica:
+            elif aggreg == agg_logaritmica or (aggreg == agg_linear):
                 agg_vote = aggreg(votes_list, ws)
-            elif (aggreg == agg_linear) or (aggreg == agg_multiplicativa):
+            elif (aggreg == agg_multiplicativa):
                 agg_vote = aggreg(votes_list)
             else:
                 print("Método de agregação desconhecido. Usando agregação linear.")

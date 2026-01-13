@@ -213,15 +213,15 @@ if __name__ == '__main__':
 
     print("Iniciando detecção de changepoints nos cenários...")
 
-    THRESHOLD = 0.7
+    THRESHOLD = 0.5
     
     WINDOW_SIZE = 20
 
     AB = 30
 
-    CENARIO_DIRS = ['teste_m110', 'teste_m150', 'teste_m200', 'teste_m200s20', 'teste_m200s30', 'teste_m200s40']
-    F0_PARAMS = [(100,10), (100,10), (100,10), (200,10), (200,10), (200,10)]
-    F1_PARAMS = [(110,10), (150,10), (200,10), (200,20), (200,30), (200,40)]
+    CENARIO_DIRS = ['teste_m130']
+    F0_PARAMS = [(100,10)]
+    F1_PARAMS = [(130,10)]
 
     for cenario_dir, f0_params, f1_params in zip(CENARIO_DIRS, F0_PARAMS, F1_PARAMS):
     
@@ -250,14 +250,13 @@ if __name__ == '__main__':
 
         detect_changepoints(
             input_dir=input_dir,
-            output_dir=output_dir+'/linear',
-            detection_func=vwcd,
+            output_dir=output_dir+'/linear_B',
+            detection_func=vwcd_2,
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
                 'ab': AB,
                 'aggreg': agg_linear,
-                'pesos': None,
                 'lamb': None,
                 'verbose': False
             },
@@ -265,14 +264,13 @@ if __name__ == '__main__':
 
         detect_changepoints(
             input_dir=input_dir,
-            output_dir=output_dir+'/multiplicativa',
-            detection_func=vwcd,
+            output_dir=output_dir+'/multiplicativa_B',
+            detection_func=vwcd_2,
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
                 'ab': AB,
                 'aggreg': agg_multiplicativa,
-                'pesos': None,
                 'lamb': None,
                 'verbose': False
             },
@@ -280,14 +278,13 @@ if __name__ == '__main__':
 
         detect_changepoints(
             input_dir=input_dir,
-            output_dir=output_dir+'/logaritmica_H',
-            detection_func=vwcd,
+            output_dir=output_dir+'/logaritmica_B',
+            detection_func=vwcd_2,
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
                 'ab': AB,
                 'aggreg': agg_logaritmica,
-                'pesos': ws_H,
                 'lamb': None,
                 'verbose': False
             },
@@ -295,61 +292,14 @@ if __name__ == '__main__':
 
         detect_changepoints(
             input_dir=input_dir,
-            output_dir=output_dir+'/otima_H',
+            output_dir=output_dir+'/otima_B',
             detection_func=vwcd,
             default_params={
                 'w': WINDOW_SIZE,
                 'vote_p_thr': THRESHOLD,
                 'ab': AB,
                 'aggreg': agg_otima,
-                'pesos': ws_H,
                 'lamb': 1,
-                'verbose': False
-            },
-        )
-
-        detect_changepoints(
-            input_dir=input_dir,
-            output_dir=output_dir+'/logaritmica_U',
-            detection_func=vwcd,
-            default_params={
-                'w': WINDOW_SIZE,
-                'vote_p_thr': THRESHOLD,
-                'ab': AB,
-                'aggreg': agg_logaritmica,
-                'pesos': ws_U,
-                'lamb': None,
-                'verbose': False
-            },
-        )
-
-        detect_changepoints(
-            input_dir=input_dir,
-            output_dir=output_dir+'/otima_U',
-            detection_func=vwcd,
-            default_params={
-                'w': WINDOW_SIZE,
-                'vote_p_thr': THRESHOLD,
-                'ab': AB,
-                'aggreg': agg_otima,
-                'pesos': ws_U,
-                'lamb': 1,
-                'verbose': False
-            },
-        )
-        
-        detect_changepoints(
-            input_dir=input_dir,
-            output_dir=output_dir+'/logaritmica_O',
-            detection_func=vwcd,
-            default_params={
-                'w': WINDOW_SIZE,
-                'vote_p_thr': THRESHOLD,
-                'ab': AB,
-                'aggreg': agg_logaritmica,
-                'pesos': ws_O,
-                'lamb': None,
-                'lamb_w': 1,
                 'verbose': False
             },
         )
