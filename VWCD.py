@@ -56,18 +56,17 @@ def ws_O(votes, lamb_w=1):
     return minimize(obj, np.ones(n)/n, method='SLSQP', bounds=[(0,1)]*n, constraints={'type':'eq','fun':lambda x: np.sum(x)-1}).x
 
 # VWCD
-def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1, verbose=False):
+def vwcd(X, w, vote_p_thr, ab=2, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=1, verbose=False):
     def loglik(x, loc, scale):
         n = len(x)
         c = 1 / np.sqrt(2 * np.pi)
         y = n * np.log(c / scale) - (1 / (2 * scale**2)) * ((x - loc) ** 2).sum()
         return y
     
-    def pos_fun(ll, prior, tau):
-        c = np.nanmax(ll)
-        lse = c + np.log(np.nansum(prior * np.exp(ll - c)))
-        p = ll[tau] + np.log(prior[tau]) - lse
-        return np.exp(p)
+    def pos_fun(ll, prior):
+        m = np.nanmax(ll)
+        lse = m + np.log(np.nansum(prior * np.exp(ll - m)))
+        return np.exp(ll + np.log(prior) - lse)
 
     N = len(X)
     i_ = np.arange(0, w - 3)
@@ -106,9 +105,9 @@ def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=
             LLR_h.append(llr)
 
         LLR_h = np.array(LLR_h)
-        pos = [pos_fun(LLR_h, prior_w, nu) for nu in range(w - 3)]
-        pos = [np.nan] * 2 + pos + [np.nan]
-        pos = np.array(pos)
+
+        pos = pos_fun(LLR_h, prior_w)
+        pos = np.concatenate(([np.nan, np.nan], pos, [np.nan]))    
         
         pos_valid = pos[~np.isnan(pos)]
         windows.append(pos_valid.copy()) 
@@ -133,9 +132,110 @@ def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=
                 ws = pesos(votes_list, lamb_w)
             elif pesos == ws_U:
                 ws = pesos(votes_list)
-            else: # Método de pesos desconhecido. Usando pesos uniformes.
-                # print("")
+            else:
+                print("Método de pesos desconhecido. Usando pesos uniformes.")
                 ws = np.ones(len(votes_list)) / len(votes_list)
+
+            if aggreg == agg_otima:
+                agg_vote = aggreg(votes_list, ws, lamb)
+            elif aggreg == agg_logaritmica:
+                agg_vote = aggreg(votes_list, ws)
+            elif (aggreg == agg_linear) or (aggreg == agg_multiplicativa):
+                agg_vote = aggreg(votes_list)
+            else:
+                print("Método de agregação desconhecido. Usando agregação linear.")
+                agg_vote = agg_linear(votes_list)
+        else:
+            agg_vote = 0.0
+
+        if num_votes < w-3:
+            agg_vote = 0.0
+
+        agg_probs[n - w + 1] = agg_vote
+
+        if agg_vote > vote_p_thr:
+            if verbose:
+                print(f'Changepoint at n={n-w+1}, p={agg_vote}, n={num_votes} votes')
+            lcp = n - w + 1
+            CP.append(lcp)
+
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    return CP, elapsedTime, vote_counts, agg_probs, votes, windows
+
+
+def vwcd_2(X, w, vote_p_thr, ab=30, aggreg=agg_linear, lamb=1, verbose=False):
+    def loglik(x, loc, scale):
+        n = len(x)
+        c = 1 / np.sqrt(2 * np.pi)
+        y = n * np.log(c / scale) - (1 / (2 * scale**2)) * ((x - loc) ** 2).sum()
+        return y
+                      
+    def logsumexp_norm(ll):
+        m = np.nanmax(ll)
+        lse = m + np.log(np.nansum(np.exp(ll - m)))
+        return np.exp(ll - lse)
+
+    N = len(X)
+    i_ = np.arange(0, w - 3)
+    prior_w = betabinom.pmf(i_, n=w - 4, a=ab, b=ab)
+
+    votes = {i: [] for i in range(N)}
+    quality = {i: [] for i in range(N)}
+    lcp = 0
+    CP = []
+    windows = [] # Armazena votos de cada janela
+    
+    vote_counts = np.zeros(N)      # Array para armazenar o número de votos
+    agg_probs = np.zeros(N)        # Array para armazenar probabilidades agregadas
+
+    startTime = time.time()
+    for n in range(w - 1, N):
+        Xw = X[n - w + 1 : n + 1]
+        LLR_h = []
+        min_std = 1e-9
+
+        for nu in range(2, w - 1):
+            # Hipótese HA
+            x1 = Xw[:nu]
+            m1 = x1.mean()
+            s1 = x1.std(ddof=1)
+            s1 = max(s1, min_std)
+            logL1 = loglik(x1, loc=m1, scale=s1)
+            x2 = Xw[nu:]
+            m2 = x2.mean()
+            s2 = x2.std(ddof=1)
+            s2 = max(s2, min_std)
+            logL2 = loglik(x2, loc=m2, scale=s2)
+
+            # Cálculo do LLR
+            llr = logL1 + logL2
+            LLR_h.append(llr)
+
+        LLR_h = np.array(LLR_h)
+
+        # pos = pos_fun(LLR_h, prior_w)
+        pos = logsumexp_norm(LLR_h)
+        pos = np.concatenate(([np.nan, np.nan], pos, [np.nan]))    
+        
+        pos_valid = pos[~np.isnan(pos)]
+        windows.append(pos_valid.copy()) 
+        pos_safe = np.clip(pos_valid, 1e-10, 1.0)
+        H_janela = -np.sum(pos_safe * np.log(pos_safe))
+
+        for nu in range(2, w - 1):
+            p_vote_h = pos[nu]
+            j = n - w + 1 + nu
+            votes[j].append(p_vote_h)
+            quality[j].append(prior_w[nu - 2])
+            vote_counts[j] += 1
+
+        votes_list = votes[n - w + 1]
+        quality_list = quality[n - w + 1]
+        num_votes = len(votes_list)
+
+        if num_votes >= w-3:
+            ws = np.array(quality_list) / np.array(quality_list).sum()
 
             if aggreg == agg_otima:
                 agg_vote = aggreg(votes_list, ws, lamb)
@@ -151,7 +251,7 @@ def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=
 
         agg_probs[n - w + 1] = agg_vote
 
-        if agg_vote >= vote_p_thr:
+        if agg_vote > vote_p_thr:
             if verbose:
                 print(f'Changepoint at n={n-w+1}, p={agg_vote}, n={num_votes} votes')
             lcp = n - w + 1
@@ -159,4 +259,5 @@ def vwcd(X, w, vote_p_thr, ab=30, aggreg=agg_linear, pesos=ws_U, lamb=1, lamb_w=
 
     endTime = time.time()
     elapsedTime = endTime - startTime
+    return CP, elapsedTime, vote_counts, agg_probs, votes, windows
     return CP, elapsedTime, vote_counts, agg_probs, votes, windows
