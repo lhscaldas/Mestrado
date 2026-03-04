@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Decision-support tool: ingest expert votes + confidences, plot stacked views,
 then aggregate expert probabilities using Entropy–KL (confidence prior + KL regularization),
@@ -665,6 +664,9 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     # TO BE CONTINUED to vote aggregation procedure.
     print("\nDone (plots displayed).")
     print("TO BE CONTINUED to vote aggregation procedure.\n")
+
+    # Destruct all plots
+    plt.close("all")
 
 # if __name__ == "__main__":
 #     try:

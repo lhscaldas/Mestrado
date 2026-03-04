@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 """
 % ============================================================
 % The code implements a Normal (Gaussian) change-point model with a mean change and common variance
