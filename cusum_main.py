@@ -5,16 +5,20 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 
 def plot_results(cenario, file):
-    results_folder = "results/" + cenario
-    plots_folder = "plots/" + cenario
+    # Define folders
+    results_folder = os.path.join("results", cenario, "cusum")
+    plots_folder = os.path.join("plots", cenario, "cusum")
     os.makedirs(plots_folder, exist_ok=True)
 
-    cusum_file = results_folder + "/cusum_" + file
-    plot_file = plots_folder + "/cusum_" + file.replace(".csv", ".png")
+    # Define files
+    cusum_file = os.path.join(results_folder, file)
+    plot_file = os.path.join(plots_folder, file.replace(".csv", ".png"))
     
+    # Read the CUSUM results
     results = pd.read_csv(cusum_file)
+
+    # Convert timestamps to datetime to avoid conversion errors
     results['timestamp'] = pd.to_datetime(results['timestamp'])
-    
     timestamps = results['timestamp'].values
     values = results['value'].values
     CP = results[results['CP'] == 1]['timestamp'].values
@@ -86,12 +90,12 @@ def wl_cusum(X, w0=20, w1=10, h=5.0):
     return CP
 
 def single_file(cenario, file):
-    series_folder = "series/" + cenario
-    results_folder = "results/" + cenario
+    series_folder = os.path.join("series", cenario)
+    results_folder = os.path.join("results", cenario, "cusum")
     os.makedirs(results_folder, exist_ok=True)
 
-    serie_file = series_folder + "/" + file
-    cusum_file = results_folder + "/cusum_" + file
+    serie_file = os.path.join(series_folder, file)
+    cusum_file = os.path.join(results_folder, file)
     
     data = pd.read_csv(serie_file)
     timestamps = data.iloc[:, 0].values
@@ -109,7 +113,7 @@ def single_file(cenario, file):
     plot_results(cenario, file)
 
 def multiple_files(cenario):
-    serie_folder = "series/" + cenario
+    serie_folder = os.path.join("series", cenario)
     files = os.listdir(serie_folder)
     for file in files:
         if file.endswith(".csv"):
@@ -123,6 +127,8 @@ if __name__ == "__main__":
     begin = time.time()
 
     cenario = "teste"
+    # file = "teste01.csv"
+    # single_file(cenario,file)
     multiple_files(cenario)
 
     end = time.time()

@@ -2,11 +2,11 @@ from vwcd_votes import window_votes
 from vwcd_aggregation import aggregation_from_input_votes_confs
 import os
 
-def single_file(cenario,file):
+def single_file(cenario,method,file):
     # Define folders
-    series_folder = "series/"+ cenario
-    results_folder = "results/" + cenario
-    plots_folder = "plots/" + cenario
+    series_folder = os.path.join("series", cenario)
+    results_folder = os.path.join("results", cenario, method)
+    plots_folder = os.path.join("plots", cenario, method)
 
     # Create folders if they don't exist
     os.makedirs(results_folder, exist_ok=True)
@@ -36,13 +36,13 @@ def single_file(cenario,file):
     window_votes(serie_file, votes_file, conf_file)
     aggregation_from_input_votes_confs(votes_file,conf_file,agg_csv,agg_csv_detail,agg_tail_csv, stack_plot_file, stack_plot_conf_file, agg_plot_file, tail_plot_file, plot=True)
 
-def multiple_files(cenario):
+def multiple_files(cenario, method):
     serie_folder = "series/"+ cenario
     files = os.listdir(serie_folder)
     for file in files:
         if file.endswith(".csv"):
             try:
-                single_file(cenario, file)
+                single_file(cenario, method, file)
             except Exception as e:
                 continue
 
@@ -51,9 +51,10 @@ if __name__ == "__main__":
     begin = time.time()
 
     cenario = "teste"
+    method = "vwcd"
     # file = "teste01.csv"
     # single_file(cenario,file)
-    multiple_files(cenario)
+    multiple_files(cenario, method)
 
     end = time.time()
     print(f"Tempo total: {end - begin:.2f} segundos")

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def calculate_metrics_folder(cenario: str, threshold: float, tolerance: int = 3) -> pd.DataFrame:
     serie_folder = os.path.join("series", cenario)
-    results_folder = os.path.join("results", cenario)
+    results_folder = os.path.join("results", cenario, "vwcd")
     
     total_tp = 0
     total_fp = 0
@@ -17,7 +17,7 @@ def calculate_metrics_folder(cenario: str, threshold: float, tolerance: int = 3)
     for file in files:
         serie_file = os.path.join(serie_folder, file)
         tail_file = os.path.join(results_folder, f"tail_probability_theta_ge_Tstar/{file}")
-        
+
         if not os.path.exists(tail_file):
             continue
             
@@ -79,6 +79,35 @@ def calculate_metrics_folder(cenario: str, threshold: float, tolerance: int = 3)
 
     return metrics_df
 
+def threshold_selection(cenario: str):
+    thresholds = np.arange(0.01, 1.01, 0.01)
+    results_list = []
+    
+    for threshold in thresholds:
+        metrics_df = calculate_metrics_folder(cenario, threshold) # type: ignore
+        metrics_df.insert(0, 'Threshold', threshold)
+        results_list.append(metrics_df)
+
+    results_df = pd.concat(results_list, ignore_index=True)
+    
+    os.makedirs("metrics", exist_ok=True)
+    os.makedirs(os.path.join("metrics", cenario), exist_ok=True)
+    file_path = os.path.join("metrics", cenario, f"metrics_vwcd.csv")
+    results_df.to_csv(file_path, index=False)
+
+def plot_f1_score(cenario: str, Show: bool = True, Save: bool = False):
+    results_df = pd.read_csv(os.path.join("metrics", cenario, f"metrics_vwcd.csv"))
+    plt.figure(figsize=(10, 6))
+    plt.plot(results_df['Threshold'], results_df['F1-Score'], marker='o')
+    plt.title('F1-Score vs Threshold')
+    plt.xlabel('Threshold')
+    plt.ylabel('F1-Score')
+    plt.grid()
+    if Save:
+        plt.savefig(f"metrics/{cenario}/f1-score_vs_threshold_vwcd.png")
+    if Show:
+        plt.show()
+
 def save_latex_metrics(cenario: str, threshold: float):
     os.makedirs("metrics", exist_ok=True)
     
@@ -122,43 +151,15 @@ def save_latex_metrics(cenario: str, threshold: float):
 \\end{{tabular}}
 """
 
-    filename = os.path.join("metrics", f"metrics_{cenario}_{threshold:.2f}.txt")
+    filename = os.path.join("metrics", cenario, f"metrics_vwcd_{threshold:.2f}.txt")
     with open(filename, "w", encoding="utf-8") as f:
         f.write(latex_content)
 
-def threshold_selection(cenario: str):
-    thresholds = np.arange(0.01, 1.01, 0.01)
-    results_list = []
-    
-    for threshold in thresholds:
-        metrics_df = calculate_metrics_folder(cenario, threshold) # type: ignore
-        metrics_df.insert(0, 'Threshold', threshold)
-        results_list.append(metrics_df)
-
-    results_df = pd.concat(results_list, ignore_index=True)
-    
-    os.makedirs("metrics", exist_ok=True)
-    file_path = os.path.join("metrics", f"metrics_{cenario}.csv")
-    results_df.to_csv(file_path, index=False)
-
-def plot_f1_score(cenario: str, Show: bool = True, Save: bool = False):
-    results_df = pd.read_csv(os.path.join("metrics", f"metrics_{cenario}.csv"))
-    plt.figure(figsize=(10, 6))
-    plt.plot(results_df['Threshold'], results_df['F1-Score'], marker='o')
-    plt.title('F1-Score vs Threshold')
-    plt.xlabel('Threshold')
-    plt.ylabel('F1-Score')
-    plt.grid()
-    if Save:
-        plt.savefig(f"metrics/f1-score_vs_threshold_{cenario}.png")
-    if Show:
-        plt.show()
-
 if __name__ == "__main__":
     cenario = "teste"
-    results_df = threshold_selection(cenario)
-    plot_f1_score(cenario=cenario, Show=True, Save=True)
-    # save_latex_metrics(cenario, threshold=0.95)
+    # threshold_selection(cenario)
+    # plot_f1_score(cenario=cenario, Show=True, Save=True)
+    save_latex_metrics(cenario, threshold=0.95)
 
 
         
