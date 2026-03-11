@@ -16,7 +16,7 @@ def calculate_metrics_folder(cenario: str, threshold: float, tolerance: int = 3)
     
     for file in files:
         serie_file = os.path.join(serie_folder, file)
-        tail_file = os.path.join(results_folder, f"tail_probability_theta_ge_Tstar_{file}")
+        tail_file = os.path.join(results_folder, f"tail_probability_theta_ge_Tstar/{file}")
         
         if not os.path.exists(tail_file):
             continue
@@ -155,12 +155,10 @@ def plot_f1_score(cenario: str, Show: bool = True, Save: bool = False):
         plt.show()
 
 if __name__ == "__main__":
-    cenarios = ["teste_m110","teste_m130", "teste_m150"]
-    # cenario = "teste_m130"
-    for cenario in cenarios:
-        # results_df = threshold_selection(cenario)
-        # plot_f1_score(cenario=cenario, Show=False, Save=True)
-        save_latex_metrics(cenario, threshold=0.95)
+    cenario = "teste"
+    results_df = threshold_selection(cenario)
+    plot_f1_score(cenario=cenario, Show=True, Save=True)
+    # save_latex_metrics(cenario, threshold=0.95)
 
 
         
