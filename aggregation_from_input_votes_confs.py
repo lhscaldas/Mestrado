@@ -61,6 +61,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import os
+
 
 # ---------------------------- Helpers ----------------------------
 
@@ -252,6 +254,8 @@ def _stackplot_time_series(
         plt.legend(loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=8, ncol=1)
     plt.tight_layout()
     if file:
+        if os.path.exists(file):
+            os.remove(file)
         plt.savefig(file)
     else:
         plt.show()
@@ -266,6 +270,8 @@ def _plot_time_series(times: np.ndarray, y: np.ndarray, title: str, ylabel: str,
     plt.ylabel(ylabel)
     plt.tight_layout()
     if file:
+        if os.path.exists(file):
+            os.remove(file)
         plt.savefig(file)
     else:
         plt.show()
@@ -647,6 +653,8 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
         plt.ylabel("P(theta >= T*)")
         plt.tight_layout()
         if tail_plot_file:
+            if os.path.exists(tail_plot_file):
+                os.remove(tail_plot_file)
             plt.savefig(tail_plot_file)
         else:
             plt.show()

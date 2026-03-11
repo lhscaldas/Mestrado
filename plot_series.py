@@ -8,6 +8,7 @@ def plot_tail_analysis(serie_file, tail_file, threshold, show_serie=True, show_t
 
     df_serie = pd.read_csv(serie_file)
     df_serie['timestamp'] = pd.to_datetime(df_serie['timestamp'])
+    value_column = [col for col in df_serie.columns if col != 'timestamp'][0]
 
     df_tail = pd.read_csv(tail_file)
     df_tail['timestamp'] = pd.to_datetime(df_tail['timestamp'])
@@ -24,13 +25,13 @@ def plot_tail_analysis(serie_file, tail_file, threshold, show_serie=True, show_t
 
     if show_serie:
         ax_serie = axes[idx]
-        ax_serie.plot(df_serie['timestamp'], df_serie['value'], label='Serie')
+        ax_serie.plot(df_serie['timestamp'], df_serie[value_column], label='Serie', linewidth=2, marker='o', markerfacecolor='black', markeredgecolor='black', markersize=5)
         
         for t in anomalies:
             ax_serie.axvline(x=t, color='red', linestyle='--', alpha=0.6)
             
         ax_serie.set_title('Serie')
-        ax_serie.set_ylabel('Value')
+        ax_serie.set_ylabel(value_column.capitalize())
         ax_serie.legend(loc='lower right')
         if num_subplots == 1:
             ax_serie.set_xlabel('Time')
@@ -49,25 +50,31 @@ def plot_tail_analysis(serie_file, tail_file, threshold, show_serie=True, show_t
     plt.tight_layout()
     if save:
         plot_file = 'plots/' + cenario + '/serie_plot_' + serie_file.split('/')[-1].replace('.csv', '.png')
+        if os.path.exists(plot_file):
+            os.remove(plot_file)
         plt.savefig(plot_file)
     else:
         plt.show()
+    plt.close("all")
 
-def plot_one(cenario, file, threshold, save=False):
+def plot_one(cenario, file, threshold, save=False, show_serie=True, show_tail=True):
     serie_file = f'series/{cenario}/{file}'
     tail_file = f'results/{cenario}/tail_probability_theta_ge_Tstar_{file}'
-    plot_tail_analysis(serie_file, tail_file, threshold, show_serie=True, show_tail=True, save=save)
+    try:
+        plot_tail_analysis(serie_file, tail_file, threshold, show_serie=show_serie, show_tail=show_tail, save=save)
+    except Exception as e:
+        print(f"Error plotting {file}: {e}")
 
-def plot_folder(cenario, threshold, save=True):
+def plot_folder(cenario, threshold, save=True, show_serie=True, show_tail=True):
     serie_folder = f'series/{cenario}'
 
     for file in os.listdir(serie_folder):
         if file.endswith('.csv'):
-            plot_one(cenario, file, threshold, save)
+            plot_one(cenario, file, threshold, save=save, show_serie=show_serie, show_tail=show_tail)
 
 if __name__ == "__main__":
-    cenario = "teste_m130"
+    cenario = "NDT_rtt_up"
     # file = "teste01.csv"
-    # plot_one(cenario, file, 0.95, save=True)
+    # plot_one(cenario, file, 1.01, save=False, show_serie=True, show_tail=False)
 
     plot_folder(cenario, 0.95, save=True)

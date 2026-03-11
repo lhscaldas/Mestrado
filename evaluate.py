@@ -32,13 +32,16 @@ def multiple_files(cenario):
     files = os.listdir(serie_folder)
     for file in files:
         if file.endswith(".csv"):
-            single_file(cenario, file)
+            try:
+                single_file(cenario, file)
+            except Exception as e:
+                continue
 
 if __name__ == "__main__":
     import time
     begin = time.time()
 
-    cenario = "teste_m130"
+    cenario = "NDT_rtt_up"
     # file = "teste01.csv"
     # single_file(cenario,file)
     multiple_files(cenario)

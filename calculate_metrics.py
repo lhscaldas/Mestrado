@@ -131,24 +131,18 @@ def threshold_selection(cenario: str):
     results_list = []
     
     for threshold in thresholds:
-        metrics_df = calculate_metrics_folder(cenario, threshold)  # type: ignore
-        f1_score = metrics_df['F1-Score'].iloc[0]
-        tp = metrics_df['TP'].iloc[0]
-        fp = metrics_df['FP'].iloc[0]
-        fn = metrics_df['FN'].iloc[0]
-        
-        results_list.append({
-            'Threshold': threshold, 
-            'F1-Score': f1_score, 
-            'TP': tp, 
-            'FP': fp, 
-            'FN': fn
-        })
+        metrics_df = calculate_metrics_folder(cenario, threshold) # type: ignore
+        metrics_df.insert(0, 'Threshold', threshold)
+        results_list.append(metrics_df)
 
-    results_df = pd.DataFrame(results_list)
-    return results_df
+    results_df = pd.concat(results_list, ignore_index=True)
+    
+    os.makedirs("metrics", exist_ok=True)
+    file_path = os.path.join("metrics", f"metrics_{cenario}.csv")
+    results_df.to_csv(file_path, index=False)
 
-def plot_f1_score(results_df: pd.DataFrame, Show: bool = True, Save: bool = False, cenario: str = "cenario"):
+def plot_f1_score(cenario: str, Show: bool = True, Save: bool = False):
+    results_df = pd.read_csv(os.path.join("metrics", f"metrics_{cenario}.csv"))
     plt.figure(figsize=(10, 6))
     plt.plot(results_df['Threshold'], results_df['F1-Score'], marker='o')
     plt.title('F1-Score vs Threshold')
@@ -161,10 +155,12 @@ def plot_f1_score(results_df: pd.DataFrame, Show: bool = True, Save: bool = Fals
         plt.show()
 
 if __name__ == "__main__":
-    cenario = "teste_m130"
-    # results_df = threshold_selection(cenario)
-    # plot_f1_score(results_df, Show=True, Save=True, cenario=cenario)
-    save_latex_metrics(cenario, threshold=0.85)
+    cenarios = ["teste_m110","teste_m130", "teste_m150"]
+    # cenario = "teste_m130"
+    for cenario in cenarios:
+        # results_df = threshold_selection(cenario)
+        # plot_f1_score(cenario=cenario, Show=False, Save=True)
+        save_latex_metrics(cenario, threshold=0.95)
 
 
         
