@@ -1,6 +1,7 @@
 from vwcd_votes import window_votes
 from vwcd_aggregation import aggregation_from_input_votes_confs
 import os
+from changepoint_plot import plot_changepoint
 
 def single_file(cenario,method,file):
     # Define folders
@@ -36,13 +37,15 @@ def single_file(cenario,method,file):
     window_votes(serie_file, votes_file, conf_file)
     aggregation_from_input_votes_confs(votes_file,conf_file,agg_csv,agg_csv_detail,agg_tail_csv, stack_plot_file, stack_plot_conf_file, agg_plot_file, tail_plot_file, plot=True)
 
-def multiple_files(cenario, method):
+def multiple_files(cenario, method, threshold=0.95):
     serie_folder = "series/"+ cenario
     files = os.listdir(serie_folder)
     for file in files:
         if file.endswith(".csv"):
             try:
                 single_file(cenario, method, file)
+                plot_changepoint(cenario, method, file, threshold=threshold, save=True)
+                plot_changepoint(cenario, method, file, threshold=threshold, save=True, tail_plot=True)
             except Exception as e:
                 continue
 
@@ -52,9 +55,10 @@ if __name__ == "__main__":
 
     cenario = "teste"
     method = "vwcd"
+    threshold = 0.95
     # file = "teste01.csv"
     # single_file(cenario,file)
-    multiple_files(cenario, method)
+    multiple_files(cenario, method, threshold)
 
     end = time.time()
     print(f"Tempo total: {end - begin:.2f} segundos")

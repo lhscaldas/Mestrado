@@ -264,7 +264,7 @@ def _stackplot_time_series(
 def _plot_time_series(times: np.ndarray, y: np.ndarray, title: str, ylabel: str, file = None) -> None:
     """Simple line plot for aggregated probability over time."""
     plt.figure(figsize=(12, 4))
-    plt.plot(times, y)
+    plt.plot(times, y, color="gray")
     plt.title(title)
     plt.xlabel("Time")
     plt.ylabel(ylabel)
@@ -640,14 +640,14 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     
         print("Computed tail probability using Beta pseudo-posterior.")
     except Exception:
-        # Fallback: no scipy installed; use a simple indicator based on the point estimate mu.
+        # Fallback: no scipy installed; use a simple indicator based on the point estimate mu.f
         p_tail = (mu_series >= T_star).astype(float)
         print("SciPy not available (or Beta tail failed). Using proxy p_tail = 1{mu >= T*}.")
     
     if plot:
         # Plot P(theta >= T*) over time, with theta in LaTeX
         plt.figure(figsize=(12, 4))
-        plt.plot(times, p_tail)
+        plt.plot(times, p_tail,color="gray")
         plt.title(r"Tail Probability Over Time: $P(\theta \geq T^*)$")
         plt.xlabel("Time")
         plt.ylabel(r"$P(\theta \geq T^*)$")

@@ -1,42 +1,9 @@
 import numpy as np
 import pandas as pd
 import os
-import matplotlib.pyplot as plt
 import scipy.stats as stats
+from changepoint_plot import plot_changepoint
 
-def plot_results(cenario, file):
-    # Define folders
-    results_folder = os.path.join("results", cenario, "cusum")
-    plots_folder = os.path.join("plots", cenario, "cusum")
-    os.makedirs(plots_folder, exist_ok=True)
-
-    # Define files
-    cusum_file = os.path.join(results_folder, file)
-    plot_file = os.path.join(plots_folder, file.replace(".csv", ".png"))
-    
-    # Read the CUSUM results
-    results = pd.read_csv(cusum_file)
-
-    # Convert timestamps to datetime to avoid conversion errors
-    results['timestamp'] = pd.to_datetime(results['timestamp'])
-    timestamps = results['timestamp'].values
-    values = results['value'].values
-    CP = results[results['CP'] == 1]['timestamp'].values
-
-    plt.figure(figsize=(12, 5))
-    plt.plot(timestamps, values, label='Data', # type: ignore
-             linewidth=1, marker='o', markerfacecolor='black', markeredgecolor='black', markersize=5)
-    
-    for i, cp in enumerate(CP):
-        plt.axvline(x=cp, color='red', linestyle='--', label='Change Point' if i == 0 else "")
-        
-    plt.title(f'CUSUM - {file}')
-    plt.xlabel('Time')
-    plt.ylabel(results.columns[1].capitalize())
-    plt.legend(loc='lower right')
-    plt.tight_layout()
-    plt.savefig(plot_file)
-    plt.close()
 
 def wl_cusum(X, w0=20, w1=10, h=3.0):
     """
@@ -112,7 +79,6 @@ def single_file(cenario, file):
         'CP': [1 if i in CP else 0 for i in range(len(X))]
     })
     results.to_csv(cusum_file, index=False)
-    plot_results(cenario, file)
 
 def multiple_files(cenario):
     serie_folder = os.path.join("series", cenario)
@@ -121,6 +87,7 @@ def multiple_files(cenario):
         if file.endswith(".csv"):
             try:
                 single_file(cenario, file)
+                plot_changepoint(cenario, "cusum", file, save=True)
             except Exception:
                 continue
 
