@@ -23,20 +23,22 @@ def plot_results(cenario, file):
     values = results['value'].values
     CP = results[results['CP'] == 1]['timestamp'].values
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(timestamps, values, label='Data')  # type: ignore
+    plt.figure(figsize=(12, 5))
+    plt.plot(timestamps, values, label='Data', # type: ignore
+             linewidth=1, marker='o', markerfacecolor='black', markeredgecolor='black', markersize=5)
     
     for i, cp in enumerate(CP):
         plt.axvline(x=cp, color='red', linestyle='--', label='Change Point' if i == 0 else "")
         
     plt.title(f'CUSUM - {file}')
-    plt.xlabel('Timestamp')
-    plt.ylabel('Value')
-    plt.legend()
+    plt.xlabel('Time')
+    plt.ylabel(results.columns[1].capitalize())
+    plt.legend(loc='lower right')
+    plt.tight_layout()
     plt.savefig(plot_file)
     plt.close()
 
-def wl_cusum(X, w0=20, w1=10, h=5.0):
+def wl_cusum(X, w0=20, w1=10, h=3.0):
     """
     Window-limited CUSUM - Based on the provided logic.
     Assumes Gaussian distribution and uses logpdf for statistic calculation.

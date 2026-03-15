@@ -2,9 +2,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-def plot_tail_analysis(serie_file, tail_file, threshold, show_serie=True, show_tail=True, save=False):
-    if not show_serie and not show_tail:
-        raise ValueError("At least one display option (show_serie or show_tail) must be True.")
+def plot_tail_analysis(cenario, file, threshold, show=False, save=False):
+    serie_file = f'series/{cenario}/{file}'
+    tail_file = f'results/{cenario}/vwcd/tail_probability_theta_ge_Tstar/{file}'
 
     df_serie = pd.read_csv(serie_file)
     df_serie['timestamp'] = pd.to_datetime(df_serie['timestamp'])
@@ -13,68 +13,82 @@ def plot_tail_analysis(serie_file, tail_file, threshold, show_serie=True, show_t
     df_tail = pd.read_csv(tail_file)
     df_tail['timestamp'] = pd.to_datetime(df_tail['timestamp'])
 
-    anomalies = df_tail[df_tail['P_theta_ge_Tstar'] > threshold]['timestamp']
+    CP = df_tail[df_tail['P_theta_ge_Tstar'] > threshold]['timestamp']
 
-    num_subplots = sum([show_serie, show_tail])
-    fig, axes = plt.subplots(num_subplots, 1, figsize=(12, 5 * num_subplots), sharex=True)
-
-    if num_subplots == 1:
-        axes = [axes]
-
-    idx = 0
-
-    if show_serie:
-        ax_serie = axes[idx]
-        ax_serie.plot(df_serie['timestamp'], df_serie[value_column], label='Serie', linewidth=2, marker='o', markerfacecolor='black', markeredgecolor='black', markersize=5)
+    fig1, ax1 = plt.subplots(figsize=(12, 5))
+    
+    ax1.plot(df_serie['timestamp'], df_serie[value_column], label='Data', 
+             linewidth=1, marker='o', markerfacecolor='black', markeredgecolor='black', markersize=5)
+    
+    for i, cp in enumerate(CP):
+        ax1.axvline(x=cp, color='red', linestyle='--', label='Change Point' if i == 0 else "")
         
-        for t in anomalies:
-            ax_serie.axvline(x=t, color='red', linestyle='--', alpha=0.6)
-            
-        ax_serie.set_title('Serie')
-        ax_serie.set_ylabel(value_column.capitalize())
-        ax_serie.legend(loc='lower right')
-        if num_subplots == 1:
-            ax_serie.set_xlabel('Time')
-        idx += 1
+    ax1.set_title(f'VWCD - {file}')
+    ax1.set_ylabel(value_column.capitalize())
+    ax1.set_xlabel('Time')
+    ax1.legend(loc='lower right')
 
-    if show_tail:
-        ax_tail = axes[idx]
-        ax_tail.plot(df_tail['timestamp'], df_tail['P_theta_ge_Tstar'], label='Tail Probability')
-        ax_tail.axhline(y=threshold, color='red', linestyle='-', label=f'Threshold ({threshold})')
-        
-        ax_tail.set_title('Tail Probability')
-        ax_tail.set_ylabel('Probability')
-        ax_tail.set_xlabel('Time')
-        ax_tail.legend(loc='lower right')
+    fig1.tight_layout()
 
-    plt.tight_layout()
     if save:
-        dir_path = os.path.join('plots', cenario, 'serie_plot')
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-        plot_file = os.path.join(dir_path, os.path.basename(serie_file).replace('.csv', '.png'))
-        if os.path.exists(plot_file):
-            os.remove(plot_file)
-        plt.savefig(plot_file)
-    else:
+        dir_path_serie = os.path.join('plots', cenario, 'vwcd/ts_plot')
+        os.makedirs(dir_path_serie, exist_ok=True)
+        plot_file_serie = os.path.join(dir_path_serie, file.replace('.csv', '.png'))
+        if os.path.exists(plot_file_serie):
+            os.remove(plot_file_serie)
+        fig1.savefig(plot_file_serie)
+
+    if show:
         plt.show()
+
+    fig2, (ax2_1, ax2_2) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
+    
+    ax2_1.plot(df_serie['timestamp'], df_serie[value_column], label='Data', 
+               linewidth=1, marker='o', markerfacecolor='black', markeredgecolor='black', markersize=5)
+    
+    for i, cp in enumerate(CP):
+        ax2_1.axvline(x=cp, color='red', linestyle='--', label='Change Point' if i == 0 else "")
+        
+    ax2_1.set_title(f'VWCD - {file}')
+    ax2_1.set_ylabel(value_column.capitalize())
+    ax2_1.legend(loc='lower right')
+
+    ax2_2.plot(df_tail['timestamp'], df_tail['P_theta_ge_Tstar'], label='Tail Probability')
+    ax2_2.axhline(y=threshold, color='red', linestyle='-', label=f'Threshold ({threshold})')
+    
+    ax2_2.set_title(r"Tail Probability Over Time: $P(\theta \geq T^*)$")
+    ax2_2.set_ylabel(r"$P(\theta \geq T^*)$")
+    ax2_2.set_xlabel('Time')
+    ax2_2.legend(loc='center right')
+
+    fig2.tight_layout()
+
+    if save:
+        dir_path_tail = os.path.join('plots', cenario, 'vwcd/ts_tail_plot')
+        os.makedirs(dir_path_tail, exist_ok=True)
+        plot_file_tail = os.path.join(dir_path_tail, file.replace('.csv', '.png'))
+        if os.path.exists(plot_file_tail):
+            os.remove(plot_file_tail)
+        fig2.savefig(plot_file_tail)
+
+    if show:
+        plt.show()
+        
     plt.close("all")
 
-def plot_one(cenario, file, threshold, save=False, show_serie=True, show_tail=True):
-    serie_file = f'series/{cenario}/{file}'
-    tail_file = f'results/{cenario}/tail_probability_theta_ge_Tstar/{file}'
+def plot_one(cenario, file, threshold, save=False):
     try:
-        plot_tail_analysis(serie_file, tail_file, threshold, show_serie=show_serie, show_tail=show_tail, save=save)
+        plot_tail_analysis(cenario, file, threshold, save=save)
     except Exception as e:
         print(f"Error plotting {file}: {e}")
     
 
-def plot_folder(cenario, threshold, save=True, show_serie=True, show_tail=True):
+def plot_folder(cenario, threshold, save=True):
     serie_folder = f'series/{cenario}'
 
     for file in os.listdir(serie_folder):
         if file.endswith('.csv'):
-            plot_one(cenario, file, threshold, save=save, show_serie=show_serie, show_tail=show_tail)
+            plot_one(cenario, file, threshold, save=save)
 
 if __name__ == "__main__":
     cenario = "teste"

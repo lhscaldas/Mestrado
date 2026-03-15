@@ -645,12 +645,12 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
         print("SciPy not available (or Beta tail failed). Using proxy p_tail = 1{mu >= T*}.")
     
     if plot:
-        # Plot P(theta >= T*) over time
+        # Plot P(theta >= T*) over time, with theta in LaTeX
         plt.figure(figsize=(12, 4))
         plt.plot(times, p_tail)
-        plt.title("Tail Probability Over Time: P(theta >= T*)")
+        plt.title(r"Tail Probability Over Time: $P(\theta \geq T^*)$")
         plt.xlabel("Time")
-        plt.ylabel("P(theta >= T*)")
+        plt.ylabel(r"$P(\theta \geq T^*)$")
         plt.tight_layout()
         if tail_plot_file:
             if os.path.exists(tail_plot_file):
