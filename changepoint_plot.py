@@ -109,10 +109,13 @@ def plot_folder(cenario, method, threshold, save=True, tail_plot=False):
         print(f"Error plotting folder '{serie_folder}': {e}")
 
 if __name__ == "__main__":
-    cenario = "teste"
-    method = "compare"
+    # cenario = "teste"
+    # method = "compare"
     # file = "teste01.csv"
     # plot_one(cenario, method, file, 0.95, save=False, show=True, tail_plot=False)
 
-    plot_folder(cenario, method, 0.95, save=True, tail_plot=False)
-    plot_folder(cenario, method, 0.95, save=True, tail_plot=True)
+    cenarios = ["teste_m110", "teste_m130", "teste_m150", "NDT_tp_down", "NDT_rtt_up"]
+    method = "compare"
+    for cenario in cenarios:
+        plot_folder(cenario, method, 0.95, save=True, tail_plot=False)
+        plot_folder(cenario, method, 0.95, save=True, tail_plot=True)

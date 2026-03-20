@@ -108,12 +108,12 @@ def calculate_metrics_folder(cenario: str, method: str, threshold: float = 0.95,
 
     return metrics_df
 
-def threshold_selection(cenario: str):
+def threshold_selection(cenario: str, tolerance: int = 3):
     thresholds = np.arange(0.01, 1.01, 0.01)
     results_list = []
     
     for threshold in thresholds:
-        metrics_df = calculate_metrics_folder(cenario,'vwcd',threshold) # type: ignore
+        metrics_df = calculate_metrics_folder(cenario,'vwcd', threshold, tolerance=tolerance) # type: ignore
         metrics_df.insert(0, 'Threshold', threshold)
         results_list.append(metrics_df)
 
@@ -185,14 +185,58 @@ def save_latex_metrics(cenario: str, method: str, columns: list = [None]):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(latex_content)
 
+def plot_grouped_metrics(cenario: str, metrics: list = ['TP', 'FP', 'FN'], scenario_label: str = "", Show: bool = True, Save: bool = False):
+    csv_file = os.path.join("metrics", cenario, "metrics_compare.csv")
+    
+    if not os.path.exists(csv_file):
+        raise FileNotFoundError(f"File not found: {csv_file}")
+
+    df = pd.read_csv(csv_file)
+    
+    missing_cols = [col for col in metrics if col not in df.columns]
+    if missing_cols:
+        raise ValueError(f"Columns not found in DataFrame: {missing_cols}")
+
+    if 'Method' not in df.columns:
+        raise ValueError("Column 'Method' not found in CSV file.")
+
+    ax = df.plot(x='Method', y=metrics, kind='bar', figsize=(10, 6), width=0.7)
+    
+    title_scenario = scenario_label if scenario_label != "" else cenario    
+    plt.title(f'Evaluation Metrics - Scenario: {title_scenario}')
+    plt.xlabel('Method')
+    plt.ylabel('Count')
+    plt.xticks(rotation=0)
+    plt.legend(title='Metrics')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+
+    if Save:
+        out_dir = os.path.join("metrics", cenario)
+        os.makedirs(out_dir, exist_ok=True)
+        plt.savefig(os.path.join(out_dir, "grouped_metrics_compare.png"))
+    
+    if Show:
+        plt.show()
+    else:
+        plt.close()
+
 if __name__ == "__main__":
-    cenario = "teste"
-    method = "compare"
-    results = calculate_metrics_folder(cenario, method, threshold=0.95, tolerance=10, save=True)
-    # print(results)
-    # threshold_selection(cenario)
-    # plot_f1_score(cenario=cenario, Show=True, Save=True)
-    # save_latex_metrics(cenario, method, columns=['Method', 'TP', 'FP', 'FN', 'Recall', 'Precision', 'F1-Score'])
+    # method = "compare"
+    # cenarios = ["teste_m110", "teste_m130", "teste_m150"]
+    # for cenario in cenarios:
+    #     calculate_metrics_folder(cenario, method, threshold=0.95, tolerance=10, save=True)
+    #     save_latex_metrics(cenario, method, columns=['Method', 'TP', 'FP', 'FN', 'Recall', 'Precision', 'F1-Score'])
+    # for cenario in cenarios:
+    #     threshold_selection(cenario)
+    #     plot_f1_score(cenario=cenario, Show=False, Save=True)
+    cenario_labels = {
+        "teste_m110": r"$1 \sigma$ shift",
+        "teste_m130": r"$3 \sigma$ shift",
+        "teste_m150": r"$5 \sigma$ shift"
+    }
+    for cenario, label in cenario_labels.items():
+        plot_grouped_metrics(cenario=cenario, metrics=['TP', 'FP', 'FN'], scenario_label=label, Show=False, Save=True)
 
 
         

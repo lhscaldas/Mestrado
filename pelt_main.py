@@ -63,8 +63,7 @@ if __name__ == "__main__":
     # end = time.time()
     # print(f"Tempo total: {end - begin:.2f} segundos")
 
-    # cenarios = ["teste_m110", "teste_m130", "teste_m150", "NDT_tp_down", "NDT_rtt_up"]
-    cenarios = ["teste"]
+    cenarios = ["teste_m110", "teste_m130", "teste_m150", "NDT_tp_down", "NDT_rtt_up"]
     for cenario in cenarios:
         begin = time.time()
         multiple_files(cenario, W=20)
