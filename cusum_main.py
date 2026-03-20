@@ -93,12 +93,21 @@ def multiple_files(cenario):
 
 if __name__ == "__main__":
     import time
-    begin = time.time()
+    # begin = time.time()
 
-    cenario = "teste"
+    # cenario = "teste"
     # file = "teste01.csv"
     # single_file(cenario,file)
-    multiple_files(cenario)
 
-    end = time.time()
-    print(f"Tempo total: {end - begin:.2f} segundos")
+    # cenario = "teste"
+    # multiple_files(cenario, threshold)
+
+    # end = time.time()
+    # print(f"Tempo total: {end - begin:.2f} segundos")
+
+    cenarios = ["teste_m110", "teste_m130", "teste_m150", "NDT_tp_down", "NDT_rtt_up"]
+    for cenario in cenarios:
+        begin = time.time()
+        multiple_files(cenario)
+        end = time.time()
+        print(f"Cenário '{cenario}' processado em {end - begin:.2f} segundos")

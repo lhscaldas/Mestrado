@@ -3,7 +3,7 @@ from vwcd_aggregation import aggregation_from_input_votes_confs
 import os
 from changepoint_plot import plot_changepoint
 
-def single_file(cenario,method,file):
+def single_file(cenario, method, file):
     # Define folders
     series_folder = os.path.join("series", cenario)
     results_folder = os.path.join("results", cenario, method)
@@ -51,14 +51,24 @@ def multiple_files(cenario, method, threshold=0.95):
 
 if __name__ == "__main__":
     import time
-    begin = time.time()
+    # begin = time.time()
 
-    cenario = "teste"
     method = "vwcd"
     threshold = 0.95
+
+    # cenario = "teste"
     # file = "teste01.csv"
     # single_file(cenario,file)
-    multiple_files(cenario, method, threshold)
 
-    end = time.time()
-    print(f"Tempo total: {end - begin:.2f} segundos")
+    # cenario = "teste"
+    # multiple_files(cenario, method, threshold)
+
+    # end = time.time()
+    # print(f"Tempo total: {end - begin:.2f} segundos")
+
+    cenarios = ["teste_m110", "teste_m130", "teste_m150", "NDT_tp_down", "NDT_rtt_up"]
+    for cenario in cenarios:
+        begin = time.time()
+        multiple_files(cenario, method, threshold)
+        end = time.time()
+        print(f"Cenário '{cenario}' processado em {end - begin:.2f} segundos")
