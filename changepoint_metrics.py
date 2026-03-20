@@ -187,12 +187,12 @@ def save_latex_metrics(cenario: str, method: str, columns: list = [None]):
 
 if __name__ == "__main__":
     cenario = "teste"
-    method = "vwcd"
-    # results = calculate_metrics_folder(cenario, method, threshold=0.95, tolerance=10, save=True)
+    method = "compare"
+    results = calculate_metrics_folder(cenario, method, threshold=0.95, tolerance=10, save=True)
     # print(results)
     # threshold_selection(cenario)
     # plot_f1_score(cenario=cenario, Show=True, Save=True)
-    save_latex_metrics(cenario, method, columns=['Method', 'TP', 'FP', 'FN', 'Recall', 'Precision', 'F1-Score'])
+    # save_latex_metrics(cenario, method, columns=['Method', 'TP', 'FP', 'FN', 'Recall', 'Precision', 'F1-Score'])
 
 
         
