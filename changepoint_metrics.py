@@ -200,15 +200,37 @@ def plot_grouped_metrics(cenario: str, metrics: list = ['TP', 'FP', 'FN'], scena
     if 'Method' not in df.columns:
         raise ValueError("Column 'Method' not found in CSV file.")
 
-    ax = df.plot(x='Method', y=metrics, kind='bar', figsize=(10, 6), width=0.7)
+    # --- Lógica para adicionar espaçamento entre as barras do mesmo grupo ---
+    n_methods = len(df)
+    n_metrics = len(metrics)
     
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    y = np.arange(n_methods)  # Posições dos métodos no eixo Y
+    total_group_height = 0.7  # Espaço total que as barras de um método ocupam
+    inter_bar_gap = 0.02      # O espaçamento entre as barras de TP, FP, FN
+    
+    # Cálculo da altura de cada barra individual descontando os gaps
+    bar_height = (total_group_height - (n_metrics - 1) * inter_bar_gap) / n_metrics
+    
+    # Plotagem manual de cada métrica para garantir o controle do offset
+    for i, metric in enumerate(metrics):
+        # Calcula o deslocamento para cada barra dentro do grupo
+        offset = -total_group_height/2 + i * (bar_height + inter_bar_gap) + bar_height/2
+        ax.barh(y + offset, df[metric], bar_height, label=metric, edgecolor='black')
+
+    # Configurações do gráfico
     title_scenario = scenario_label if scenario_label != "" else cenario    
-    plt.title(f'Evaluation Metrics - Scenario: {title_scenario}')
-    plt.xlabel('Method')
-    plt.ylabel('Count')
-    plt.xticks(rotation=0)
-    plt.legend(title='Metrics')
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    ax.set_title(f'Evaluation Metrics - Scenario: {title_scenario}')
+    ax.set_ylabel('Method')
+    ax.set_xlabel('Count')
+    
+    ax.set_yticks(y)
+    ax.set_yticklabels(df['Method'])
+    ax.invert_yaxis() # Opcional: mantém a ordem do CSV de cima para baixo
+    
+    ax.legend(title='Metrics')
+    ax.grid(axis='x', linestyle='--', alpha=0.7)
     plt.tight_layout()
 
     if Save:
@@ -237,6 +259,7 @@ if __name__ == "__main__":
     }
     for cenario, label in cenario_labels.items():
         plot_grouped_metrics(cenario=cenario, metrics=['TP', 'FP', 'FN'], scenario_label=label, Show=False, Save=True)
+
 
 
         
