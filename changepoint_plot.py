@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 def plot_changepoint(cenario, method, file, threshold=0.95, tail_plot=False, show=False, save=False):
-    if method not in ['vwcd', 'cusum', 'pelt', 'compare']:
+    if method not in ['vwcd','cusum', 'pelt', 'compare','pure']:
         raise ValueError("Method must be one of 'vwcd', 'cusum', 'pelt', or 'compare'.")
     if method in ['pelt', 'cusum'] and tail_plot:
         raise ValueError("Tail plot is only available for 'vwcd' or 'compare' methods.")
@@ -26,6 +26,8 @@ def plot_changepoint(cenario, method, file, threshold=0.95, tail_plot=False, sho
         pelt_file = f'results/{cenario}/pelt/{file}'
         df_pelt = pd.read_csv(pelt_file)
         df_pelt['timestamp'] = pd.to_datetime(df_pelt['timestamp'])
+    if method == 'pure':
+        pass
 
     ax2=None
     if tail_plot:
@@ -52,6 +54,8 @@ def plot_changepoint(cenario, method, file, threshold=0.95, tail_plot=False, sho
 
     if method == 'compare':
         ax1.set_title(f'Change Point Detection Comparison - {file}')
+    elif method == 'pure':
+        ax1.set_title(f'Time Series - {file}')
     else:
         ax1.set_title(f'{method.upper()} - {file}')
     ax1.set_ylabel(value_column.capitalize())
@@ -97,8 +101,8 @@ def plot_one(cenario, method, file, threshold, save=False, tail_plot=False, show
 def plot_folder(cenario, method, threshold, save=True, tail_plot=False):
     serie_folder = f'series/{cenario}'
     try:
-        if method not in ['vwcd', 'cusum', 'pelt', 'compare']:
-            raise ValueError("Method must be one of 'vwcd', 'cusum', 'pelt', or 'compare'.")
+        if method not in ['vwcd', 'cusum', 'pelt', 'compare','pure']:
+            raise ValueError("Method must be one of 'vwcd', 'cusum', 'pelt', 'compare', or 'pure'.")
         if method in ['pelt', 'cusum'] and tail_plot:
             raise ValueError("Tail plot is only available for 'vwcd' or 'compare' methods.")
         
@@ -115,8 +119,14 @@ if __name__ == "__main__":
     # file = "teste01.csv"
     # plot_one(cenario, method, file, 0.95, save=False, show=True, tail_plot=False)
 
-    cenarios = ["teste_m110", "teste_m130", "teste_m150", "NDT_tp_down", "NDT_rtt_up"]
+    # cenarios = ["teste_m110", "teste_m130", "teste_m150"]
+    cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
     method = "compare"
     for cenario in cenarios:
         plot_folder(cenario, method, 0.95, save=True, tail_plot=False)
         plot_folder(cenario, method, 0.95, save=True, tail_plot=True)
+
+    # cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
+    # method = "pure"
+    # for cenario in cenarios:
+    #     plot_folder(cenario, method, 0.95, save=True, tail_plot=False)

@@ -353,7 +353,7 @@ def window_votes(csv_file, votes_file, conf_file):
             row = [timestamps[t-1], f"{x[t-1]:.15g}"] + [f"{votes_matrix[t-1, k-1]:.15g}" for k in range(1, W+1)]
             w.writerow(row)
 
-    print(f"Done.\nT={T}, W={W}, num_windows={num_windows}\nOutput: {votes_file}")
+    # print(f"Done.\nT={T}, W={W}, num_windows={num_windows}\nOutput: {votes_file}")
 
 
     """
@@ -377,7 +377,7 @@ def window_votes(csv_file, votes_file, conf_file):
             row = [timestamps[t-1]] + [f"{confs_matrix[t-1, k-1]:.15g}" for k in range(1, W+1)]
             w.writerow(row)
 
-    print(f"Done.\nT={T}, W={W}, num_windows={num_windows}\nOutput: {conf_file}")
+    # print(f"Done.\nT={T}, W={W}, num_windows={num_windows}\nOutput: {conf_file}")
 
 
     """

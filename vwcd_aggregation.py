@@ -412,7 +412,7 @@ def entropy_kl_aggregate_time_series(
 # ---------------------------- Main script ----------------------------
 
 def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_detail,tail_csv,stack_plot_file=None, stack_plot_conf_file=None, agg_plot_file=None,tail_plot_file=None,            plot=False) -> None:
-    print("\n=== Expert Vote + Confidence Ingestion + Entropy–KL Aggregation ===\n")
+    # print("\n=== Expert Vote + Confidence Ingestion + Entropy–KL Aggregation ===\n")
 
     # votes_file = input("Enter VOTES CSV filename/path: ").strip()
     # conf_file = input("Enter CONFIDENCE CSV filename/path: ").strip()
@@ -433,7 +433,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     r = 0.5
 
     gamma = gamma_from_downweight(delta=delta, r=r)
-    print(f"\nComputed gamma = -delta^2 / log(r) = {gamma:.6f}\n")
+    # print(f"\nComputed gamma = -delta^2 / log(r) = {gamma:.6f}\n")
 
     # --- Read CSVs ---
     df_votes = pd.read_csv(votes_file)
@@ -444,12 +444,12 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     n_exp = len(vote_cols)
     ts_conf, conf_cols = _infer_conf_columns(df_conf, n_exp)
 
-    print("=== Inferred structure ===")
-    print(f"Nexp (from votes columns): {n_exp}")
-    print(f"k_begin={k_begin}, k_end={k_end}, W={W}")
-    print(f"Vote columns: {vote_cols[0]} ... {vote_cols[-1]}")
-    print(f"Conf columns: {conf_cols[0]} ... {conf_cols[-1]}")
-    print()
+    # print("=== Inferred structure ===")
+    # print(f"Nexp (from votes columns): {n_exp}")
+    # print(f"k_begin={k_begin}, k_end={k_end}, W={W}")
+    # print(f"Vote columns: {vote_cols[0]} ... {vote_cols[-1]}")
+    # print(f"Conf columns: {conf_cols[0]} ... {conf_cols[-1]}")
+    # print()
 
     # --- Align timestamps first ---
     df_votes, df_conf = _align_on_timestamp(df_votes, ts_votes, df_conf, ts_conf)
@@ -466,7 +466,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     _check_ignored_are_zero(df_votes_t, vote_cols, k_begin, k_end, name="Votes (ignored check, TRIMMED)", eps=0.0)
     _check_ignored_are_zero(df_conf_t, conf_cols, k_begin, k_end, name="Confidences (ignored check, TRIMMED)", eps=0.0)
 
-    print("All ingestion checks PASSED (with ignored-expert check on trimmed region).\n")
+    # print("All ingestion checks PASSED (with ignored-expert check on trimmed region).\n")
 
     # --- Prepare arrays for plotting and aggregation (TRIMMED region) ---
     times = pd.to_datetime(df_votes_t[ts_votes]).to_numpy()
@@ -499,16 +499,16 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     # ----------------------------
     # (NEW) Entropy–KL aggregation
     # ----------------------------
-    print("=== Entropy–KL aggregation (time series) ===")
-    print(f"gamma (from delta={delta}, r={r}) = {gamma:.6f}")
+    # print("=== Entropy–KL aggregation (time series) ===")
+    # print(f"gamma (from delta={delta}, r={r}) = {gamma:.6f}")
 
     mu_series, w_series = entropy_kl_aggregate_time_series(votes_mat=votes_mat, conf_mat=conf_mat, gamma=gamma)
 
-    print(f"Aggregated mu(t) summary: min={mu_series.min():.6f}, max={mu_series.max():.6f}, mean={mu_series.mean():.6f}")
-    print("Example at first trimmed time:")
-    print(f"  time = {times[0]}")
-    print(f"  mu   = {mu_series[0]:.6f}")
-    print(f"  sum(w)= {w_series[0].sum():.12f}  (should be 1 up to numerical precision)\n")
+    # print(f"Aggregated mu(t) summary: min={mu_series.min():.6f}, max={mu_series.max():.6f}, mean={mu_series.mean():.6f}")
+    # print("Example at first trimmed time:")
+    # print(f"  time = {times[0]}")
+    # print(f"  mu   = {mu_series[0]:.6f}")
+    # print(f"  sum(w)= {w_series[0].sum():.12f}  (should be 1 up to numerical precision)\n")
 
     if plot:
         # --- Plot 3: aggregated probability over time ---
@@ -527,7 +527,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
         "mu_agg": mu_series
     })
     df_out.to_csv(out_csv, index=False)
-    print(f"Wrote aggregated time series to: {out_csv}")
+    # print(f"Wrote aggregated time series to: {out_csv}")
 
     # ------------------------------------------------------------
     # NEW: Write a "full details" CSV per timestamp:
@@ -568,7 +568,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
 
     # out_csv_detail = "aggregated_entropy_kl_full_details.csv"
     df_detail.to_csv(out_csv_detail, index=False)
-    print(f"Wrote full per-timestamp details to: {out_csv_detail}")
+    # print(f"Wrote full per-timestamp details to: {out_csv_detail}")
 
     # ------------------------------------------------------------
     # NEW: Risk-based thresholding using costs and plotting P(theta >= T*)
@@ -589,7 +589,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     
     # Bayes-optimal cost threshold
     T_star = C_FP / (C_FP + C_FN)
-    print(f"Cost-based threshold T* = C_FP/(C_FP+C_FN) = {T_star:.6f}")
+    # print(f"Cost-based threshold T* = C_FP/(C_FP+C_FN) = {T_star:.6f}")
     
     # We will plot P(theta >= T*) over time.
     # If you have a Beta posterior available, compute the tail probability exactly.
@@ -626,11 +626,11 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
         if use_entropy_weights:
             # Method A: evidence contribution uses confidence AND entropy–KL weights
             kappa_mat = kappa_max * np.clip(conf_mat, 0.0, 1.0) * w_series  # shape (T,N)
-            print("Using Method A: kappa_i = kappa_max * c_i * w_i")
+            # print("Using Method A: kappa_i = kappa_max * c_i * w_i")
         else:
             # Baseline: evidence contribution uses confidence only
             kappa_mat = kappa_max * np.clip(conf_mat, 0.0, 1.0)   # shape (T,N)
-            print("Using baseline: kappa_i = kappa_max * c_i")
+            # print("Using baseline: kappa_i = kappa_max * c_i")
 
         alpha_t = alpha0 + np.sum(kappa_mat * votes_mat, axis=1)
         beta_t  = beta0  + np.sum(kappa_mat * (1.0 - votes_mat), axis=1)
@@ -638,7 +638,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
         # Tail probability: P(theta >= T*) = 1 - F_beta(T*)
         p_tail = 1.0 - beta_dist.cdf(T_star, a=alpha_t, b=beta_t)
     
-        print("Computed tail probability using Beta pseudo-posterior.")
+        # print("Computed tail probability using Beta pseudo-posterior.")
     except Exception:
         # Fallback: no scipy installed; use a simple indicator based on the point estimate mu.f
         p_tail = (mu_series >= T_star).astype(float)
@@ -667,11 +667,11 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
         "P_theta_ge_Tstar": p_tail
     })
     df_tail.to_csv(tail_csv, index=False)
-    print(f"Wrote tail probability time series to: {tail_csv}")
+    # print(f"Wrote tail probability time series to: {tail_csv}")
     
     # TO BE CONTINUED to vote aggregation procedure.
-    print("\nDone (plots displayed).")
-    print("TO BE CONTINUED to vote aggregation procedure.\n")
+    # print("\nDone (plots displayed).")
+    # print("TO BE CONTINUED to vote aggregation procedure.\n")
 
     # Destruct all plots
     plt.close("all")

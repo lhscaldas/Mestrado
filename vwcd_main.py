@@ -62,6 +62,7 @@ def multiple_files(cenario, method, threshold=0.95):
                 continue
 
 if __name__ == "__main__":
+    print("Starting VWCD change point detection...")
     import time
     # begin = time.time()
 
@@ -78,7 +79,9 @@ if __name__ == "__main__":
     # end = time.time()
     # print(f"Tempo total: {end - begin:.2f} segundos")
 
-    cenarios = ["teste_m110", "teste_m130", "teste_m150", "NDT_tp_down", "NDT_rtt_up"]
+    # cenarios = ["teste_m110", "teste_m130", "teste_m150"]
+    # cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up", "NDT_OUT/tp_down", "NDT_OUT/rtt_up", "NDT_OUT/rtt_down"]
+    cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
     for cenario in cenarios:
         begin = time.time()
         multiple_files(cenario, method, threshold)
