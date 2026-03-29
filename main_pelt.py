@@ -2,7 +2,7 @@ import ruptures as rpt
 import numpy as np
 import pandas as pd
 import os
-from changepoint_plot import plot_changepoint
+from plot_changepoint import plot_changepoint
 import shutil
 
 def single_file(cenario, file):

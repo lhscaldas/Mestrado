@@ -1,7 +1,7 @@
-from vwcd_votes import window_votes
-from vwcd_aggregation import aggregation_from_input_votes_confs
+from aux_vwcd_votes import window_votes
+from aux_vwcd_aggregation import aggregation_from_input_votes_confs
 import os
-from changepoint_plot import plot_changepoint
+from plot_changepoint import plot_changepoint
 import shutil
 
 def single_file(cenario, method, file):
