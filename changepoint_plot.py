@@ -109,6 +109,7 @@ def plot_folder(cenario, method, threshold, save=True, tail_plot=False):
         print(f"Error plotting folder '{serie_folder}': {e}")
 
 if __name__ == "__main__":
+    print("Starting change point plotting...")
     # cenario = "teste"
     # method = "compare"
     # file = "teste01.csv"

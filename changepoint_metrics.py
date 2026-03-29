@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def calculate_metrics_folder(cenario: str, method: str, threshold: float = 0.95, tolerance: int = 3, save = False) -> pd.DataFrame:
+def calculate_metrics_folder(cenario: str, method: str, threshold: float = 0.95, tolerance: int = 10, save = False) -> pd.DataFrame:
     if method not in ['vwcd', 'cusum', 'pelt', 'compare']:
         raise ValueError("Method must be one of 'vwcd', 'cusum', 'pelt', or 'compare'.")
 
@@ -40,7 +40,7 @@ def calculate_metrics_folder(cenario: str, method: str, threshold: float = 0.95,
             df_res = pd.read_csv(res_file)
             df_res['timestamp'] = pd.to_datetime(df_res['timestamp'])
 
-            df_merged = pd.merge(df_serie, df_res, on='timestamp', how='inner')
+            df_merged = pd.merge(df_serie, df_res, on='timestamp', how='left').fillna(0)
 
             y_true = df_merged['value_cp'].astype(int).values
             
@@ -244,11 +244,12 @@ def plot_grouped_metrics(cenario: str, metrics: list = ['TP', 'FP', 'FN'], scena
         plt.close()
 
 if __name__ == "__main__":
-    # method = "compare"
-    # cenarios = ["teste_m110", "teste_m130", "teste_m150"]
-    # for cenario in cenarios:
-    #     calculate_metrics_folder(cenario, method, threshold=0.95, tolerance=10, save=True)
-    #     save_latex_metrics(cenario, method, columns=['Method', 'TP', 'FP', 'FN', 'Recall', 'Precision', 'F1-Score'])
+    print("Starting change point metrics calculation...")
+    method = "compare"
+    cenarios = ["teste_m110", "teste_m130", "teste_m150"]
+    for cenario in cenarios:
+        calculate_metrics_folder(cenario, method, threshold=0.95, tolerance=10, save=True)
+        save_latex_metrics(cenario, method, columns=['Method', 'TP', 'FP', 'FN', 'Recall', 'Precision', 'F1-Score'])
     # for cenario in cenarios:
     #     threshold_selection(cenario)
     #     plot_f1_score(cenario=cenario, Show=False, Save=True)
@@ -257,7 +258,7 @@ if __name__ == "__main__":
         "teste_m130": r"$3 \sigma$ shift",
         "teste_m150": r"$5 \sigma$ shift"
     }
-    for cenario, label in cenario_labels.items():
+    for cenario, label in cenario_labels.items(): # type: ignore
         plot_grouped_metrics(cenario=cenario, metrics=['TP', 'FP', 'FN'], scenario_label=label, Show=False, Save=True)
 
 

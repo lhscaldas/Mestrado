@@ -2,6 +2,7 @@ from vwcd_votes import window_votes
 from vwcd_aggregation import aggregation_from_input_votes_confs
 import os
 from changepoint_plot import plot_changepoint
+import shutil
 
 def single_file(cenario, method, file):
     # Define folders
@@ -40,6 +41,17 @@ def single_file(cenario, method, file):
 def multiple_files(cenario, method, threshold=0.95):
     serie_folder = "series/"+ cenario
     files = os.listdir(serie_folder)
+
+    results_folder = os.path.join("results", cenario, method)
+    if os.path.exists(results_folder):
+        shutil.rmtree(results_folder)
+    os.makedirs(results_folder, exist_ok=True)
+    
+    plots_folder = os.path.join("plots", cenario, method)
+    if os.path.exists(plots_folder):
+        shutil.rmtree(plots_folder)
+    os.makedirs(plots_folder, exist_ok=True)
+
     for file in files:
         if file.endswith(".csv"):
             try:
