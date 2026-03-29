@@ -119,8 +119,8 @@ if __name__ == "__main__":
     # file = "teste01.csv"
     # plot_one(cenario, method, file, 0.95, save=False, show=True, tail_plot=False)
 
-    # cenarios = ["teste_m110", "teste_m130", "teste_m150"]
-    cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
+    NDT_folder = "NDT_OUT"
+    cenarios = [f"{NDT_folder}/packet_loss", f"{NDT_folder}/tp_up", f"{NDT_folder}/rtt_down", f"{NDT_folder}/tp_down", f"{NDT_folder}/rtt_up"]
     method = "compare"
     for cenario in cenarios:
         plot_folder(cenario, method, 0.95, save=True, tail_plot=False)

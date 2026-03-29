@@ -79,9 +79,8 @@ if __name__ == "__main__":
     # end = time.time()
     # print(f"Tempo total: {end - begin:.2f} segundos")
 
-    # cenarios = ["teste_m110", "teste_m130", "teste_m150"]
-    # cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up", "NDT_OUT/tp_down", "NDT_OUT/rtt_up", "NDT_OUT/rtt_down"]
-    cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
+    NDT_folder = "NDT_OUT"
+    cenarios = [f"{NDT_folder}/packet_loss", f"{NDT_folder}/tp_up", f"{NDT_folder}/rtt_down", f"{NDT_folder}/tp_down", f"{NDT_folder}/rtt_up"]
     for cenario in cenarios:
         begin = time.time()
         multiple_files(cenario, method, threshold)
