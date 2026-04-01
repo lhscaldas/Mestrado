@@ -6,6 +6,7 @@ from collections import defaultdict
 def count_changepoints(scenario: str, method: str, threshold: float = None):  # type: ignore
     data = defaultdict(dict)
     scenario_path = Path(os.path.join('results',scenario))
+    series_path = Path(os.path.join('series', scenario))
     measured_variables = set()
     
     if not scenario_path.exists():
@@ -38,6 +39,16 @@ def count_changepoints(scenario: str, method: str, threshold: float = None):  # 
                                 count = (df['CP'] == 1).sum()
                                 data[(client, server)][variable] = count
 
+                        series_csv_path = series_path / variable / csv_file.name
+                        if series_csv_path.exists():
+                            df_series = pd.read_csv(series_csv_path)
+                            
+                            col_name = variable if variable in df_series.columns else df_series.columns[-1]
+                            
+                            data[(client, server)][f"{variable}_min"] = df_series[col_name].min()
+                            data[(client, server)][f"{variable}_mean"] = df_series[col_name].mean()
+                            data[(client, server)][f"{variable}_max"] = df_series[col_name].max()
+
     records = []
     for (client, server), var_counts in data.items():
         row = {'client': client, 'server': server}
@@ -45,13 +56,16 @@ def count_changepoints(scenario: str, method: str, threshold: float = None):  # 
         records.append(row)
         
     final_df = pd.DataFrame(records)
-    
+
     if not final_df.empty:
-        for var in measured_variables:
-            if var not in final_df.columns:
-                final_df[var] = 0
+        column_order = ['client', 'server']
+        for var in sorted(measured_variables):
+            column_order.extend([var, f"{var}_min", f"{var}_mean", f"{var}_max"])
+            
+        for col in column_order:
+            if col not in final_df.columns:
+                final_df[col] = 0
                 
-        column_order = ['client', 'server'] + list(measured_variables)
         final_df = final_df[column_order].fillna(0)
         
         out_dir = Path(f"metrics/{scenario_path.name}")
