@@ -78,7 +78,7 @@ def segment_series_by_changepoints(scenario: str, method: str, threshold: float 
                     final_df.to_csv(out_path, index=False)
 
 if __name__ == "__main__":
-    scenario = "NDT_OUT"
+    scenario = "NDT_AGO_OUT"
     # method = "cusum"  # or "cpd"
     methods = ["cusum", "pelt", "vwcd"]
     threshold = 0.95  # Only needed for vwcd

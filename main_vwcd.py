@@ -71,10 +71,7 @@ if __name__ == "__main__":
 
     # cenario = "teste"
     # file = "teste01.csv"
-    # single_file(cenario,file)
-
-    # cenario = "teste"
-    # multiple_files(cenario, method, threshold)
+    # single_file(cenario, method, file)
 
     # end = time.time()
     # print(f"Tempo total: {end - begin:.2f} segundos")

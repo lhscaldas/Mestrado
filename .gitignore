@@ -7,3 +7,8 @@ results
 plots
 metrics
 segments
+.vscode
+.rosa
+__pycache__
+desktop.ini
+*/desktop.ini

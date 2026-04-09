@@ -48,6 +48,7 @@ def count_changepoints(scenario: str, method: str, threshold: float = None):  # 
                             data[(client, server)][f"{variable}_min"] = df_series[col_name].min()
                             data[(client, server)][f"{variable}_mean"] = df_series[col_name].mean()
                             data[(client, server)][f"{variable}_max"] = df_series[col_name].max()
+                            data[(client, server)][f"{variable}_std"] = df_series[col_name].std() if len(df_series[col_name]) > 1 else 0.0
 
     records = []
     for (client, server), var_counts in data.items():
@@ -60,7 +61,7 @@ def count_changepoints(scenario: str, method: str, threshold: float = None):  # 
     if not final_df.empty:
         column_order = ['client', 'server']
         for var in sorted(measured_variables):
-            column_order.extend([var, f"{var}_min", f"{var}_mean", f"{var}_max"])
+            column_order.extend([var, f"{var}_min", f"{var}_mean", f"{var}_max", f"{var}_std"])
             
         for col in column_order:
             if col not in final_df.columns:
@@ -81,7 +82,7 @@ def count_changepoints(scenario: str, method: str, threshold: float = None):  # 
     return final_df
 
 if __name__ == "__main__":
-    scenario = "NDT_AGO_OUT"
+    scenario = "NDT_OUT"
     # method = "cusum"  # or "cpd"
     methods = ["cusum", "pelt", "vwcd"]
     threshold = 0.95  # Only needed for vwcd
