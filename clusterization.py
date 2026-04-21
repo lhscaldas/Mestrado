@@ -1,0 +1,157 @@
+import os
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.mixture import GaussianMixture
+import re
+
+def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters=3, apply_clip=False):
+    # 1. Caminhos de entrada e saída
+    input_dir = os.path.join("features", scenario)
+    output_dir = os.path.join("clusters", scenario)
+    os.makedirs(output_dir, exist_ok=True)
+    
+    file_name = f"features_{method}_{ref_metric}_{threshold}.csv"
+    input_path = os.path.join(input_dir, file_name)
+    
+    if not os.path.exists(input_path):
+        print(f"Erro: Arquivo {input_path} not found.")
+        return
+
+    # 2. Carregamento dos dados
+    df = pd.read_csv(input_path)
+    feature_cols = ['d_rtt_down', 'd_tp_down', 'd_rtt_up', 'd_tp_up', 'd_pl']
+    df_clean = df.dropna(subset=feature_cols).copy()
+
+    # 3. Pré-processamento
+    if apply_clip:
+        for col in feature_cols:
+            lower = df_clean[col].quantile(0.01)
+            upper = df_clean[col].quantile(0.99)
+            df_clean[col] = df_clean[col].clip(lower=lower, upper=upper)
+
+    # Ajuste específico para escala de probabilidade do PL se não estiver corrigido
+    if 'd_pl' in df_clean.columns and df_clean['d_pl'].abs().max() > 1.0:
+        df_clean['d_pl'] = df_clean['d_pl'] / 100.0
+
+    # 4. Normalização
+    scaler = StandardScaler()
+    x_scaled = scaler.fit_transform(df_clean[feature_cols])
+
+    # 5. Treinamento do GMM
+    gmm = GaussianMixture(n_components=n_clusters, covariance_type='full', random_state=42)
+    df_clean['cluster'] = gmm.fit_predict(x_scaled)
+
+    # 6. Salvamento do CSV
+    base_output_name = f"clusters_K{n_clusters:02d}_{file_name}"
+    csv_path = os.path.join(output_dir, base_output_name)
+    df_clean.to_csv(csv_path, index=False)
+
+    # 7. Geração do Relatório Técnico (TXT)
+    report_path = csv_path.replace(".csv", ".txt")
+    with open(report_path, "w") as f:
+        f.write(f"RELATORIO DE CLUSTERIZACAO GMM - {scenario}\n")
+        f.write("="*60 + "\n")
+        f.write(f"Metrica de Referencia: {ref_metric}\n")
+        f.write(f"Algoritmo CPD: {method}\n")
+        f.write(f"Numero de Clusters (K): {n_clusters}\n")
+        f.write(f"Total de Eventos: {len(df_clean)}\n\n")
+
+        # Metricas de Ajuste do Modelo
+        f.write("METRICAS DE AJUSTE (Qualidade do Modelo):\n")
+        f.write(f"AIC (Akaike Information Criterion): {gmm.aic(x_scaled):.2f}\n")
+        f.write(f"BIC (Bayesian Information Criterion): {gmm.bic(x_scaled):.2f}\n")
+        f.write(f"Log-Likelihood: {gmm.score(x_scaled) * len(df_clean):.2f}\n\n")
+
+        f.write("RESUMO DOS CLUSTERS:\n")
+        f.write("-" * 30 + "\n")
+        counts = df_clean['cluster'].value_counts().sort_index()
+        for cluster_id, count in counts.items():
+            f.write(f"Cluster {cluster_id}:\n")
+            f.write(f"  - Quantidade de Eventos: {count} ({count/len(df_clean)*100:.1f}%)\n")
+            f.write(f"  - Peso (Mix Proportion): {gmm.weights_[cluster_id]:.4f}\n\n")  # type: ignore
+            
+            # Médias (des-normalizadas para facilitar interpretação física)
+            # scaler.inverse_transform converte de volta para a escala original (ms, %, etc)
+            means_orig = scaler.inverse_transform(gmm.means_)
+            f.write("  - Medias (Escala Original):\n")
+            for i, col in enumerate(feature_cols):
+                f.write(f"    {col}: {means_orig[cluster_id][i]:.4f}\n") # type: ignore
+            
+            f.write("\n  - Matriz de Covariancia (Espaco Z-Score):\n")
+            f.write(str(np.round(gmm.covariances_[cluster_id], 4)) + "\n") # type: ignore
+            f.write("-" * 30 + "\n")
+
+    print(f"Processamento concluído para {ref_metric}.")
+    print(f"CSV salvo em: {csv_path}")
+    print(f"Relatorio salvo em: {report_path}")
+
+def compile_cluster_reports(scenario, method, ref_metric, threshold):
+    path = os.path.join("clusters", scenario)
+    if not os.path.exists(path):
+        print(f"Erro: Pasta {path} não encontrada.")
+        return
+
+    data = []
+    
+    # Regex para capturar K do nome do arquivo e os valores dentro do TXT
+    file_pattern = rf"clusters_K(\d+)_features_{method}_{ref_metric}_{threshold}\.txt"    
+    
+    for file in os.listdir(path):
+        match = re.match(file_pattern, file)
+        if match:
+            k_val = int(match.group(1))
+            full_path = os.path.join(path, file)
+            
+            with open(full_path, 'r') as f:
+                content = f.read()
+                
+                # Extração via Regex dos valores numéricos
+                aic = re.search(r"AIC.*: ([\d\.-]+)", content)
+                bic = re.search(r"BIC.*: ([\d\.-]+)", content)
+                ll  = re.search(r"Log-Likelihood: ([\d\.-]+)", content)
+                events = re.search(r"Total de Eventos: (\d+)", content)
+                
+                if aic and bic and ll:
+                    data.append({
+                        'K': k_val,
+                        'Events': int(events.group(1)) if events else 0,
+                        'AIC': float(aic.group(1)),
+                        'BIC': float(bic.group(1)),
+                        'Log-Likelihood': float(ll.group(1))
+                    })
+
+    if not data:
+        print("Nenhum relatório encontrado para os parâmetros fornecidos.")
+        return
+
+    # Criar DataFrame e ordenar por K
+    df = pd.DataFrame(data).sort_values('K').reset_index(drop=True)
+    
+    # Calcular a diferença (Delta) entre o K atual e o anterior para ver o ganho
+    df['Delta_BIC'] = df['BIC'].diff()
+    df['Delta_LL']  = df['Log-Likelihood'].diff()
+
+    print(f"\nCOMPARAÇÃO DE MODELOS - CENÁRIO: {scenario}")
+    print(f"Métrica: {ref_metric} | Threshold: {threshold}")
+    print("=" * 85)
+    print(df.to_string(index=False))
+    print("=" * 85)
+    print("\n* Delta_BIC negativo indica ganho de qualidade.")
+    print("* Delta_LL positivo indica melhor ajuste aos dados.") 
+
+if __name__ == "__main__":
+    # cluster_and_save_results(
+    #     scenario="NDT_AGO_OUT",
+    #     method="vwcd",
+    #     ref_metric="full",
+    #     threshold=0.95,
+    #     n_clusters=2,
+    #     apply_clip=True
+    # )
+    compile_cluster_reports(
+        scenario="NDT_AGO_OUT",
+        method="vwcd",
+        ref_metric="full",
+        threshold=0.95
+    )
