@@ -233,10 +233,13 @@ def feature_extraction(scenario, method, threshold, ref_metric):
     folder_path = os.path.join("segments", scenario, "full")
     file_name = f"{method}_{ref_metric}_{threshold}.csv"
     input_path = os.path.join(folder_path, file_name)
-    output_path = os.path.join(folder_path, f"features_{file_name}")
+    output_path = os.path.join("features", scenario, f"features_{file_name}")
     
     if not os.path.exists(input_path):
         return
+    
+    if not os.path.exists(output_path):
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     df = pd.read_csv(input_path)
     
@@ -295,6 +298,6 @@ if __name__ == "__main__":
     # for method in methods:
     #     result_df = segment_series_by_changepoints(scenario, method, threshold)
     method = "vwcd"
-    ref_metric = "full"
+    ref_metric = "rtt_up"
     segment_series_by_threshold(scenario, method, threshold, ref_metric)
     feature_extraction(scenario, method, threshold, ref_metric)

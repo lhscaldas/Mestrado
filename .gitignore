@@ -7,6 +7,7 @@ results
 plots
 metrics
 segments
+features
 .vscode
 .rosa
 __pycache__
