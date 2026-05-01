@@ -76,7 +76,7 @@ if __name__ == "__main__":
     # end = time.time()
     # print(f"Tempo total: {end - begin:.2f} segundos")
 
-    NDT_folder = "NDT_AGO_OUT"
+    NDT_folder = "NDT_NOV_ABR"
     cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
     for cenario in cenarios:
         begin = time.time()

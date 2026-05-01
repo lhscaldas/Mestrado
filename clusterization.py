@@ -96,7 +96,7 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
     
     # Regex para capturar K do nome do arquivo e os valores dentro do TXT
     file_pattern = rf"clusters_K(\d+)_features_{method}_{ref_metric}_{threshold}\.txt"    
-    
+
     for file in os.listdir(path):
         match = re.match(file_pattern, file)
         if match:
@@ -141,17 +141,22 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
     print("* Delta_LL positivo indica melhor ajuste aos dados.") 
 
 if __name__ == "__main__":
-    # cluster_and_save_results(
-    #     scenario="NDT_AGO_OUT",
-    #     method="vwcd",
-    #     ref_metric="full",
-    #     threshold=0.95,
-    #     n_clusters=2,
-    #     apply_clip=True
-    # )
+    scenario = "NDT_AGO_OUT"
+    method = "vwcd"
+    ref_metric = "full"
+    threshold = 0.95 
+    for k in [2, 3, 4, 5]:
+        cluster_and_save_results(
+            scenario=scenario,
+            method=method,
+            ref_metric=ref_metric,
+            threshold=threshold,
+            n_clusters=k,
+            apply_clip=False
+        )
     compile_cluster_reports(
-        scenario="NDT_AGO_OUT",
-        method="vwcd",
-        ref_metric="full",
-        threshold=0.95
+        scenario=scenario,
+        method=method,
+        ref_metric=ref_metric,
+        threshold=threshold
     )

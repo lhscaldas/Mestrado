@@ -9,6 +9,7 @@ metrics
 segments
 features
 clusters
+reports
 .vscode
 .rosa
 __pycache__

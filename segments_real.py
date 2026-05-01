@@ -294,10 +294,10 @@ if __name__ == "__main__":
     scenario = "NDT_AGO_OUT"
     # method = "cusum"  # or "cpd"
     # methods = ["cusum", "pelt", "vwcd"]
-    threshold = 0.95  # Only needed for vwcd
+    threshold = 0.8 
     # for method in methods:
     #     result_df = segment_series_by_changepoints(scenario, method, threshold)
     method = "vwcd"
-    ref_metric = "rtt_up"
+    ref_metric = "full"
     segment_series_by_threshold(scenario, method, threshold, ref_metric)
     feature_extraction(scenario, method, threshold, ref_metric)
