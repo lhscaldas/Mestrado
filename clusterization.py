@@ -141,11 +141,11 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
     print("* Delta_LL positivo indica melhor ajuste aos dados.") 
 
 if __name__ == "__main__":
-    scenario = "NDT_AGO_OUT"
+    scenario = "NDT_NOV_ABR"
     method = "vwcd"
-    ref_metric = "full"
-    threshold = 0.95 
-    for k in [2, 3, 4, 5]:
+    ref_metric = "rtt_down"
+    threshold = 0.95
+    for k in range(2, 11):
         cluster_and_save_results(
             scenario=scenario,
             method=method,

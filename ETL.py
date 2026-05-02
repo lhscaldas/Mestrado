@@ -19,7 +19,7 @@ def transform_artificial_csv_files(folder_path):
         if file_path != new_file_path:
             os.remove(file_path)
 
-def clean_and_transform_NDT(path_folder: str, file_name: str):
+def NDT_transform(path_folder: str, file_name: str):
     # Carrega o CSV
     df = pd.read_csv(path_folder + f'/{file_name}')
 
@@ -40,46 +40,103 @@ def clean_and_transform_NDT(path_folder: str, file_name: str):
     df_server = pd.read_csv(path_folder + '/servers.csv')
     df['server_name'] = df['server_ip'].map(df_server.set_index('server_ip')['name'])
 
-    # Convertendo download_tp_bps e upload_tp_bps para Mbps
+    # Convertendo download_tp_bps e upload_tp_bps para Mbps e removendo as colunas originais
     df['download_tp_Mbps'] = df['download_tp_bps'] / 1_000_000
     df['upload_tp_Mbps'] = df['upload_tp_bps'] / 1_000_000
+    df = df.drop(['download_tp_bps', 'upload_tp_bps'], axis=1)
 
-    # Convertendo latency_download_sec e latency_upload_sec para ms
+    # Convertendo latency_download_sec e latency_upload_sec para ms e removendo as colunas originais
     df['latency_download_ms'] = df['latency_download_sec'] * 1000
     df['latency_upload_ms'] = df['latency_upload_sec'] * 1000
-
-    # Verifica se há colunas com valores nulos, printa o quantitativo e remove essas linhas
-    null_counts = df.isnull().sum()
-    print("Contagem de valores nulos por coluna:")
-    print(null_counts[null_counts > 0])
-    df = df.dropna()
-
-    # Verifica se há colunas com valores negativos, printa e remove essas linhas
-    negative_conditions = (df[['download_tp_bps', 'latency_download_ms', 'upload_tp_bps', 'latency_upload_ms', 'loss_rate']] < 0).any(axis=1)
-    negative_counts = negative_conditions.sum()
-    print(f"Quantidade de linhas com valores negativos: {negative_counts}")
-    df = df[~negative_conditions]
-
-    # Remove os clientes LandTeste e Gigalink
-    df = df[~df['client_name'].isin(['LandTeste', 'Gigalink'])]
+    df = df.drop(['latency_download_sec', 'latency_upload_sec'], axis=1)
 
     # Reordenando as colunas de forma lógica
     logical_order = [
         'timestamp', 'test_uuid', 
         'client_name', 'client_ip', 'mac_address',
         'server_name', 'server_ip', 
-        'download_tp_Mbps', 'download_tp_bps', 'latency_download_ms',
-        'upload_tp_Mbps', 'upload_tp_bps', 'latency_upload_ms',
-        'loss_rate'
+        'upload_tp_Mbps', 'latency_upload_ms', 
+        'download_tp_Mbps', 'latency_download_ms', 'loss_rate'
     ]
     df = df[logical_order]
 
+    # Renomeando para rtt_download,throughput_download,rtt_upload,throughput_upload,packet_loss
+    df = df.rename(columns={
+        'latency_download_ms': 'rtt_download',
+        'download_tp_Mbps': 'throughput_download',
+        'latency_upload_ms': 'rtt_upload',
+        'upload_tp_Mbps': 'throughput_upload',
+        'loss_rate': 'packet_loss'
+    })
+
     # Salva em outro CSV
-    clean_file_name = file_name.replace('raw', 'clean')
+    clean_file_name = file_name.replace('raw', 'transformed')
     clean_file_path = os.path.join(path_folder, clean_file_name)
     df.to_csv(clean_file_path, index=False)
 
-def export_time_series_NDT(df_pandas, output_dir, metadata_csv_filename):
+import pandas as pd
+import os
+
+def NDT_clean(
+    path_folder: str, 
+    file_name: str,
+    remove_bottom_clients: int,
+    keep_top_servers: int,
+    min_pair_measurements: int,
+):
+    
+    metricas = [
+        'rtt_download', 'throughput_download', 
+        'rtt_upload', 'throughput_upload', 'packet_loss'
+    ]
+        
+    # Carrega o CSV
+    file_path = os.path.join(path_folder, file_name)
+    df = pd.read_csv(file_path)
+
+    # ORDENA pelo timestamp
+    if 'timestamp' in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.sort_values(by='timestamp')
+
+    # Remove timestamps duplicados no mesmo par cliente-servidor
+    df['client_server_pair'] = df['client_name'] + " -> " + df['server_name']
+    duplicatas = df.duplicated(subset=['client_server_pair', 'timestamp'])
+    pares_com_duplicatas = duplicatas.groupby(df['client_server_pair']).sum()
+    pares_com_duplicatas = pares_com_duplicatas[pares_com_duplicatas > 0].sort_values(ascending=False)
+    df = df[~df['client_server_pair'].isin(pares_com_duplicatas.keys())]
+
+    # Remover os clientes menos comuns
+    if 'client_name' in df.columns:
+        medicoes_por_cliente = df['client_name'].value_counts()
+        clientes_para_remover = medicoes_por_cliente.nsmallest(remove_bottom_clients).index
+        df = df[~df['client_name'].isin(clientes_para_remover)]
+
+    # Manter apenas os servidores mais comuns
+    if 'server_name' in df.columns:
+        top_servidores = df['server_name'].value_counts().nlargest(keep_top_servers).index
+        df = df[df['server_name'].isin(top_servidores)]
+
+    # remover os valores nulos
+    df = df.dropna()
+
+    # remover os valores negativos
+    for col in metricas:
+        if col in df.columns:
+            df = df[df[col] >= 0]
+
+    # remover os pares com menos de x medições
+    if 'client_name' in df.columns and 'server_name' in df.columns:
+        medicoes_por_par = df['client_server_pair'].value_counts()
+        df = df[df['client_server_pair'].isin(medicoes_por_par[medicoes_por_par >= min_pair_measurements].index)]
+
+    # Salva em outro CSV
+    clean_file_name = file_name.replace('transformed', 'clean')
+    clean_file_path = os.path.join(path_folder, clean_file_name)
+    df.to_csv(clean_file_path, index=False)
+
+
+def NDT_export(df_pandas, output_dir, metadata_csv_filename):
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -94,39 +151,38 @@ def export_time_series_NDT(df_pandas, output_dir, metadata_csv_filename):
         for s in sites:
             df_pair = df_pandas[(df_pandas.client_name == c) & (df_pandas.server_name == s)]
                       
-            if len(df_pair) >= 100:
-                df_ts = pd.DataFrame({
-                    'timestamp': df_pair['timestamp'].values,
-                    'rtt_download': df_pair['latency_download_ms'].values,
-                    'throughput_download': df_pair['download_tp_Mbps'].values,
-                    'rtt_upload': df_pair['latency_upload_ms'].values,
-                    'throughput_upload': df_pair['upload_tp_Mbps'].values,
-                    'packet_loss': df_pair['loss_rate'].values
-                })
-                df_ts.sort_values(by='timestamp', inplace=True)
+            df_ts = pd.DataFrame({
+                'timestamp': df_pair['timestamp'].values,
+                'rtt_download': df_pair['rtt_download'].values,
+                'throughput_download': df_pair['throughput_download'].values,
+                'rtt_upload': df_pair['rtt_upload'].values,
+                'throughput_upload': df_pair['throughput_upload'].values,
+                'packet_loss': df_pair['packet_loss'].values
+            })
+            df_ts.sort_values(by='timestamp', inplace=True)
 
-                output_file = f"{output_dir}/{c}_{s}.csv" 
+            output_file = f"{output_dir}/{c}_{s}.csv" 
 
-                # verifica se o df_ts possui timestamps repetidos e, se sim, pular a exportação desse arquivo
-                if df_ts['timestamp'].duplicated().any():
-                    print(f"Série temporal para cliente '{c}' e site '{s}' possui timestamps duplicados. Pulando a exportação deste arquivo.")
-                    continue
+            # verifica se o df_ts possui timestamps repetidos e, se sim, pular a exportação desse arquivo
+            if df_ts['timestamp'].duplicated().any():
+                print(f"Série temporal para cliente '{c}' e site '{s}' possui timestamps duplicados. Pulando a exportação deste arquivo.")
+                continue
 
-                else:
-                    df_ts.to_csv(output_file, index=False) 
+            else:
+                df_ts.to_csv(output_file, index=False) 
 
-                    df_pair_sorted = df_pair.sort_values(by='timestamp')
-                    inicio = df_pair_sorted['timestamp'].iloc[0]
-                    fim = df_pair_sorted['timestamp'].iloc[-1]
-                    num_med = len(df_pair)
-                    mean_time = np.round(df_pair_sorted['timestamp'].diff().mean().total_seconds() / 3600, 1)
-                    file_prefix = f"{c}_{s}"
-                    
-                    quant = {
-                        "client": c, "site": s, "inicio": inicio, "fim": fim,
-                        "num_med": num_med, "mean_time": mean_time, "file_prefix": file_prefix
-                    }
-                    med.append(quant)
+                df_pair_sorted = df_pair.sort_values(by='timestamp')
+                inicio = df_pair_sorted['timestamp'].iloc[0]
+                fim = df_pair_sorted['timestamp'].iloc[-1]
+                num_med = len(df_pair)
+                mean_time = np.round(df_pair_sorted['timestamp'].diff().mean().total_seconds() / 3600, 1)
+                file_prefix = f"{c}_{s}"
+                
+                quant = {
+                    "client": c, "site": s, "inicio": inicio, "fim": fim,
+                    "num_med": num_med, "mean_time": mean_time, "file_prefix": file_prefix
+                }
+                med.append(quant)
 
     df_metadata = pd.DataFrame(med)
     df_metadata.to_csv(metadata_csv_filename, index=False)
@@ -134,7 +190,7 @@ def export_time_series_NDT(df_pandas, output_dir, metadata_csv_filename):
     print(f"Metadados salvos com sucesso em: {metadata_csv_filename}")
     print(f"Séries temporais (.csv) salvas em: {output_dir}")
 
-def split_NDT_metrics_csv(input_folder: str):
+def NDT_split(input_folder: str):
     col_to_suffix = {
         'rtt_download': 'rtt_down',
         'throughput_download': 'tp_down',
@@ -165,7 +221,7 @@ def split_NDT_metrics_csv(input_folder: str):
 
             # Verificar se o df resultante está vazio após o filtro e, se sim, pular o arquivo
             if df.empty:
-                print(f"Arquivo '{file}' não possui dados para o mês de outubro. Pulando este arquivo.")
+                print(f"Arquivo '{file}' não possui dados para o período. Pulando este arquivo.")
                 continue
             
             for col, out_folder in output_folders.items():
@@ -176,20 +232,29 @@ def split_NDT_metrics_csv(input_folder: str):
 
 
 if __name__ == "__main__":
+    # Transforma o CSV bruto em um CSV com colunas mais amigáveis e unidades convertidas
     path_folder = 'NDT dataset'
     file_name = 'NOV_ABR_raw.csv'
-    clean_and_transform_NDT(path_folder, file_name)
+    # NDT_transform(path_folder, file_name)
 
-    # Carrega o CSV limpo
-    clean_path = os.path.join(path_folder, file_name.replace('raw', 'clean'))
-    df_clean = pd.read_csv(clean_path)
-
-    # Exporta as séries temporais e metadados
-    output_dir = os.path.join('series', 'NDT_NOV_ABR', 'full')
-    export_time_series_NDT(
-        df_pandas=df_clean,
-        output_dir=output_dir, 
-        metadata_csv_filename=clean_path.replace('clean', 'metadata')
+    # Limpa o CSV transformado, removendo linhas com valores nulos ou negativos, e outros tipos de limpeza
+    NDT_clean(
+    path_folder=path_folder, 
+    file_name=file_name.replace('raw', 'transformed'),
+    remove_bottom_clients=3,
+    keep_top_servers=4,
+    min_pair_measurements=3000,
     )
 
-    split_NDT_metrics_csv(input_folder=output_dir)
+    # Exporta as séries temporais e metadados
+    # clean_path = os.path.join(path_folder, file_name.replace('raw', 'clean'))
+    # df_clean = pd.read_csv(clean_path)
+    # output_dir = os.path.join('series', 'NDT_NOV_ABR', 'full')
+    # NDT_export(
+    #     df_pandas=df_clean,
+    #     output_dir=output_dir, 
+    #     metadata_csv_filename=clean_path.replace('clean', 'metadata')
+    # )
+
+    # # Separa as séries temporais em arquivos distintos por métrica
+    # split_NDT_metrics_csv(input_folder=output_dir)

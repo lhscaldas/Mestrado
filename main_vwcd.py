@@ -67,6 +67,7 @@ if __name__ == "__main__":
     # begin = time.time()
 
     method = "vwcd"
+    
     threshold = 0.95
 
     # cenario = "teste"

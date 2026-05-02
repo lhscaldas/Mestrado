@@ -128,13 +128,13 @@ if __name__ == "__main__":
     # file = "teste01.csv"
     # plot_one(cenario, method, file, 0.95, save=False, show=True, tail_plot=False)
 
-    NDT_folder = "NDT_OUT"
+    NDT_folder = "NDT_NOV_ABR"
     cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
     method = "vwcd"
     for cenario in cenarios:
-        # plot_folder(cenario, method, 0.95, save=True, tail_plot=False, alias="slice_1w", slice=["2025-10-01", "2025-10-07"])
-        plot_folder(cenario, method, 0.95, save=True, tail_plot=False)
-        plot_folder(cenario, method, 0.95, save=True, tail_plot=True)
+        plot_folder(cenario, method, 0.95, save=True, tail_plot=True, alias="slice_FEV", slice=["2026-02-01", "2026-02-28"])
+        # plot_folder(cenario, method, 0.95, save=True, tail_plot=False)
+        # plot_folder(cenario, method, 0.95, save=True, tail_plot=True)
 
     # cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
     # method = "pure"

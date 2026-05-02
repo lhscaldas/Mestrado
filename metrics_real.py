@@ -82,9 +82,10 @@ def count_changepoints(scenario: str, method: str, threshold: float = None):  # 
     return final_df
 
 if __name__ == "__main__":
-    scenario = "NDT_OUT"
+    scenario = "NDT_NOV_ABR"
     # method = "cusum"  # or "cpd"
-    methods = ["cusum", "pelt", "vwcd"]
+    # methods = ["cusum", "pelt", "vwcd"]
+    methods = ["vwcd"]
     threshold = 0.95  # Only needed for vwcd
     for method in methods:
         result_df = count_changepoints(scenario, method, threshold)
