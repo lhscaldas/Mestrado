@@ -27,7 +27,7 @@ def NDT_transform(path_folder: str, file_name: str):
     df = df.sort_values(by='timestamp')
 
     # Pega apenas as coluna ["timestamp","client_ip","server_ip","download_tp_bps","latency_download_sec","upload_tp_bps","latency_upload_sec","mac_address","download_retrans_percent","test_uuid"]
-    df = df[["timestamp","client_ip","server_ip","download_tp_bps","latency_download_sec","upload_tp_bps","latency_upload_sec","mac_address","download_retrans_percent","test_uuid"]]
+    df = df[["timestamp","client_ip","server_ip","server_fqdn","download_tp_bps","latency_download_sec","upload_tp_bps","latency_upload_sec","mac_address","download_retrans_percent","test_uuid"]]
 
     # Renomeia a coluna download_retrans_percent para loss_rate
     df = df.rename(columns={"download_retrans_percent": "loss_rate"})
@@ -35,10 +35,11 @@ def NDT_transform(path_folder: str, file_name: str):
     # Criando a coluna nome do cliente a partir do MAC
     df_device = pd.read_csv(path_folder + '/devices.csv')
     df['client_name'] = df['mac_address'].map(df_device.set_index('mac')['owner'])
+    df['tipo'] = df['mac_address'].map(df_device.set_index('mac')['tipo'])
 
     # Criando a coluna nome do servidor a partir do IP
     df_server = pd.read_csv(path_folder + '/servers.csv')
-    df['server_name'] = df['server_ip'].map(df_server.set_index('server_ip')['name'])
+    df['server_name'] = df['server_fqdn'].map(df_server.set_index('server_fqdn')['apelido'])
 
     # Convertendo download_tp_bps e upload_tp_bps para Mbps e removendo as colunas originais
     df['download_tp_Mbps'] = df['download_tp_bps'] / 1_000_000
@@ -52,9 +53,9 @@ def NDT_transform(path_folder: str, file_name: str):
 
     # Reordenando as colunas de forma lógica
     logical_order = [
-        'timestamp', 'test_uuid', 
+        'timestamp', 'test_uuid', 'tipo',
         'client_name', 'client_ip', 'mac_address',
-        'server_name', 'server_ip', 
+        'server_name', 'server_ip', 'server_fqdn',
         'upload_tp_Mbps', 'latency_upload_ms', 
         'download_tp_Mbps', 'latency_download_ms', 'loss_rate'
     ]
@@ -73,9 +74,6 @@ def NDT_transform(path_folder: str, file_name: str):
     clean_file_name = file_name.replace('raw', 'transformed')
     clean_file_path = os.path.join(path_folder, clean_file_name)
     df.to_csv(clean_file_path, index=False)
-
-import pandas as pd
-import os
 
 def NDT_clean(
     path_folder: str, 
@@ -234,17 +232,17 @@ def NDT_split(input_folder: str):
 if __name__ == "__main__":
     # Transforma o CSV bruto em um CSV com colunas mais amigáveis e unidades convertidas
     path_folder = 'NDT dataset'
-    file_name = 'NOV_ABR_raw.csv'
-    # NDT_transform(path_folder, file_name)
+    file_name = 'AGO_ABR_raw.csv'
+    NDT_transform(path_folder, file_name)
 
     # Limpa o CSV transformado, removendo linhas com valores nulos ou negativos, e outros tipos de limpeza
-    NDT_clean(
-    path_folder=path_folder, 
-    file_name=file_name.replace('raw', 'transformed'),
-    remove_bottom_clients=3,
-    keep_top_servers=4,
-    min_pair_measurements=3000,
-    )
+    # NDT_clean(
+    # path_folder=path_folder, 
+    # file_name=file_name.replace('raw', 'transformed'),
+    # remove_bottom_clients=3,
+    # keep_top_servers=4,
+    # min_pair_measurements=3000,
+    # )
 
     # Exporta as séries temporais e metadados
     # clean_path = os.path.join(path_folder, file_name.replace('raw', 'clean'))
