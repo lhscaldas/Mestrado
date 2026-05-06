@@ -37,9 +37,24 @@ def NDT_transform(path_folder: str, file_name: str):
     df['client_name'] = df['mac_address'].map(df_device.set_index('mac')['owner'])
     df['tipo'] = df['mac_address'].map(df_device.set_index('mac')['tipo'])
 
-    # Criando a coluna nome do servidor a partir do IP
+    # Criando a coluna nome do servidor a partir do fqdn
     df_server = pd.read_csv(path_folder + '/servers.csv')
     df['server_name'] = df['server_fqdn'].map(df_server.set_index('server_fqdn')['apelido'])
+
+    # Mapeamento para garantir consistência e manter a distribuição
+    mask_client = df['client_name'].notna()
+    client_map = {val: f"client{i+1:02d}" for i, val in enumerate(df.loc[mask_client, 'client_name'].unique())}
+    df.loc[mask_client, 'client_name'] = df.loc[mask_client, 'client_name'].map(client_map)
+    mask_server = df['server_name'].notna()
+    server_map = {val: f"server{i+1:02d}" for i, val in enumerate(df.loc[mask_server, 'server_name'].unique())}
+    df.loc[mask_server, 'server_name'] = df.loc[mask_server, 'server_name'].map(server_map)
+
+    # Salvar o mapeamento para possível reversão
+    import json
+    mapping_data = {'client_map': client_map, 'server_map': {v: k for k, v in server_map.items()}} #
+    mapping_data = {'client_map': {v: k for k, v in client_map.items()}, 'server_map': {v: k for k, v in server_map.items()}}
+    with open(os.path.join(path_folder, 'mapping_log.json'), 'w') as f:
+        json.dump(mapping_data, f, indent=4)
 
     # Convertendo download_tp_bps e upload_tp_bps para Mbps e removendo as colunas originais
     df['download_tp_Mbps'] = df['download_tp_bps'] / 1_000_000
@@ -232,7 +247,7 @@ def NDT_split(input_folder: str):
 if __name__ == "__main__":
     # Transforma o CSV bruto em um CSV com colunas mais amigáveis e unidades convertidas
     path_folder = 'NDT dataset'
-    file_name = 'AGO_ABR_raw.csv'
+    file_name = 'NDT_raw.csv'
     NDT_transform(path_folder, file_name)
 
     # Limpa o CSV transformado, removendo linhas com valores nulos ou negativos, e outros tipos de limpeza
