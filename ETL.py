@@ -93,9 +93,8 @@ def NDT_transform(path_folder: str, file_name: str):
 def NDT_clean(
     path_folder: str, 
     file_name: str,
-    remove_bottom_clients: int,
-    keep_top_servers: int,
-    min_pair_measurements: int,
+    limite_horas: int,
+    seg_min: int
 ):
     
     metricas = [
@@ -107,41 +106,38 @@ def NDT_clean(
     file_path = os.path.join(path_folder, file_name)
     df = pd.read_csv(file_path)
 
-    # ORDENA pelo timestamp
-    if 'timestamp' in df.columns:
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        df = df.sort_values(by='timestamp')
+    # manter apenas o tipo 'raspberry'
+    df = df[df['tipo'] == 'raspberry'].copy()
 
-    # Remove timestamps duplicados no mesmo par cliente-servidor
-    df['client_server_pair'] = df['client_name'] + " -> " + df['server_name']
-    duplicatas = df.duplicated(subset=['client_server_pair', 'timestamp'])
-    pares_com_duplicatas = duplicatas.groupby(df['client_server_pair']).sum()
-    pares_com_duplicatas = pares_com_duplicatas[pares_com_duplicatas > 0].sort_values(ascending=False)
-    df = df[~df['client_server_pair'].isin(pares_com_duplicatas.keys())]
-
-    # Remover os clientes menos comuns
-    if 'client_name' in df.columns:
-        medicoes_por_cliente = df['client_name'].value_counts()
-        clientes_para_remover = medicoes_por_cliente.nsmallest(remove_bottom_clients).index
-        df = df[~df['client_name'].isin(clientes_para_remover)]
-
-    # Manter apenas os servidores mais comuns
-    if 'server_name' in df.columns:
-        top_servidores = df['server_name'].value_counts().nlargest(keep_top_servers).index
-        df = df[df['server_name'].isin(top_servidores)]
-
-    # remover os valores nulos
+    # remover os valores nulos e negativos antes das lógicas de tempo
     df = df.dropna()
-
-    # remover os valores negativos
     for col in metricas:
         if col in df.columns:
             df = df[df[col] >= 0]
 
-    # remover os pares com menos de x medições
-    if 'client_name' in df.columns and 'server_name' in df.columns:
-        medicoes_por_par = df['client_server_pair'].value_counts()
-        df = df[df['client_server_pair'].isin(medicoes_por_par[medicoes_por_par >= min_pair_measurements].index)]
+    # Criar coluna de par cliente-servidor
+    df['client_server_pair'] = df['client_name'] + " -> " + df['server_name']
+
+    # Conversão de timestamp
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['data'] = df['timestamp'].dt.date
+
+    # 1. Remover duplicatas ANTES do cálculo de tempo
+    duplicatas = df.duplicated(subset=['client_server_pair', 'timestamp'], keep=False)
+    df = df[~duplicatas].copy()
+
+    # 2. Ordenar por tempo e par
+    df = df.sort_values(by=['client_server_pair', 'timestamp']).reset_index(drop=True)
+
+    # 3. Criar coluna com a diferença de tempo (agora os pulos de tempo serão reais)
+    df['delta_tempo_horas'] = df.groupby('client_server_pair')['timestamp'].diff().dt.total_seconds() / 3600
+
+    # filtrar seguimentos curtos
+    condicao_quebra = df['delta_tempo_horas'] > limite_horas
+    df['id_bloco'] = condicao_quebra.groupby(df['client_server_pair']).cumsum()
+    df['tamanho_bloco'] = df.groupby(['client_server_pair', 'id_bloco'])['id_bloco'].transform('count')
+    df = df[df['tamanho_bloco'] >= seg_min].copy()
+    df['id_bloco'] = df.groupby('client_server_pair')['id_bloco'].rank(method='dense').astype(int)
 
     # Salva em outro CSV
     clean_file_name = file_name.replace('transformed', 'clean')
@@ -248,16 +244,15 @@ if __name__ == "__main__":
     # Transforma o CSV bruto em um CSV com colunas mais amigáveis e unidades convertidas
     path_folder = 'NDT dataset'
     file_name = 'NDT_raw.csv'
-    NDT_transform(path_folder, file_name)
+    # NDT_transform(path_folder, file_name)
 
     # Limpa o CSV transformado, removendo linhas com valores nulos ou negativos, e outros tipos de limpeza
-    # NDT_clean(
-    # path_folder=path_folder, 
-    # file_name=file_name.replace('raw', 'transformed'),
-    # remove_bottom_clients=3,
-    # keep_top_servers=4,
-    # min_pair_measurements=3000,
-    # )
+    NDT_clean(
+    path_folder=path_folder, 
+    file_name=file_name.replace('raw', 'transformed'),
+    limite_horas=12,
+    seg_min=1000
+    )
 
     # Exporta as séries temporais e metadados
     # clean_path = os.path.join(path_folder, file_name.replace('raw', 'clean'))
