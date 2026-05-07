@@ -2,82 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 
-def segment_series_by_changepoints(scenario: str, method: str, threshold: float = None):  # type: ignore
-    scenario_path = Path(os.path.join('results', scenario))
-    series_path = Path(os.path.join('series', scenario))
-    
-    if not scenario_path.exists():
-        raise FileNotFoundError(f"The scenario folder '{scenario}' was not found.")
-
-    for variable_dir in scenario_path.iterdir():
-        if variable_dir.is_dir():
-            variable = variable_dir.name
-            
-            if method == 'vwcd':
-                target_dir = variable_dir / method / "tail_probability_theta_ge_Tstar"
-            else:
-                target_dir = variable_dir / method
-            
-            if target_dir.exists():
-                records = []
-                for csv_file in target_dir.glob("*.csv"):
-                    name_parts = csv_file.stem.split('_', 1)
-                    if len(name_parts) == 2:
-                        client, server = name_parts
-                        
-                        df = pd.read_csv(csv_file)
-                        
-                        cp_indices = []
-                        if method == 'vwcd':
-                            if 'P_theta_ge_Tstar' in df.columns and threshold is not None:
-                                cp_indices = df.index[df['P_theta_ge_Tstar'] > threshold].tolist()
-                        else:
-                            if 'CP' in df.columns:
-                                cp_indices = df.index[df['CP'] == 1].tolist()
-                        
-                        series_csv_path = series_path / variable / csv_file.name
-                        if series_csv_path.exists():
-                            df_series = pd.read_csv(series_csv_path)
-                            
-                            col_name = variable if variable in df_series.columns else df_series.columns[-1]
-                            series_data = df_series[col_name]
-                            
-                            cp_indices = sorted([cp for cp in cp_indices if cp < len(series_data)])
-                            boundaries = [0] + cp_indices + [len(series_data)]
-                            
-                            segment_order = 1
-                            for i in range(len(boundaries) - 1):
-                                start = boundaries[i]
-                                end = boundaries[i+1]
-                                
-                                if start < end:
-                                    segment = series_data.iloc[start:end]
-                                    
-                                    records.append({
-                                        'client': client,
-                                        'server': server,
-                                        'segment_order': segment_order,
-                                        'mean': segment.mean(),
-                                        'min': segment.min(),
-                                        'max': segment.max(),
-                                        'std': segment.std() if len(segment) > 1 else 0.0
-                                    })
-                                    segment_order += 1
-
-                if records:
-                    final_df = pd.DataFrame(records)
-                    
-                    out_dir = Path(f"segments/{scenario}/{variable}")
-                    out_dir.mkdir(parents=True, exist_ok=True)
-                    
-                    if method == 'vwcd':
-                        out_path = out_dir / f"{method}_{threshold}.csv"
-                    else:
-                        out_path = out_dir / f"{method}.csv"
-                        
-                    final_df.to_csv(out_path, index=False)
-
-def segment_series_by_threshold(scenario, method, threshold, ref_metric):
+def segment_series(scenario, method, threshold, ref_metric):
     input_dir = os.path.join("results", scenario, "full", method)
     output_dir = os.path.join("segments", scenario, "full")
     os.makedirs(output_dir, exist_ok=True)
@@ -94,7 +19,11 @@ def segment_series_by_threshold(scenario, method, threshold, ref_metric):
 
     for file_name in [f for f in os.listdir(input_dir) if f.endswith('.csv')]:
         name_part = file_name.replace('.csv', '')
-        client, server = name_part.split('_', 1) if '_' in name_part else (name_part, "unknown")
+        
+        parts = name_part.split('_', 2)
+        client = parts[0] if len(parts) > 0 else name_part
+        server = parts[1] if len(parts) > 1 else "unknown"
+        block = parts[2] if len(parts) > 2 else "unknown"
 
         df = pd.read_csv(os.path.join(input_dir, file_name))
         
@@ -131,8 +60,9 @@ def segment_series_by_threshold(scenario, method, threshold, ref_metric):
             segment_stats = {
                 'client': client,
                 'server': server,
-                'segment_number': seg_id,
-                'timestamp': current_timestamp,
+                'block': block,
+                'segment_number': f"{i + 1:02d}",
+                'final_timestamp': current_timestamp,
                 'start_timestamp': group['timestamp'].iloc[0],
                 'metrics_at_threshold': metrics_above_threshold,
                 'n_points': len(group)
@@ -166,61 +96,57 @@ def feature_extraction(scenario, method, threshold, ref_metric):
 
     df = pd.read_csv(input_path)
     
-    # 1. Filtro de pares sem changepoint
-    df['pair'] = df['client'] + "_" + df['server']
-    pairs_with_changes = df.groupby('pair')['segment_number'].max()
-    pairs_with_changes = pairs_with_changes[pairs_with_changes > 0].index
-    df_filtered = df[df['pair'].isin(pairs_with_changes)].copy()
+    df = df[df['n_points'] >= 6].copy()
     
-    df_filtered = df_filtered.sort_values(['client', 'server', 'segment_number'])
+    df['series_id'] = df['client'] + "_" + df['server'] + "_" + df['block'].astype(str)
+    
+    series_counts = df.groupby('series_id').size()
+    series_with_changes = series_counts[series_counts > 1].index
+    df_filtered = df[df['series_id'].isin(series_with_changes)].copy()
+    
+    df_filtered = df_filtered.sort_values(['client', 'server', 'block', 'segment_number'])
     
     eps = 1e-9
     features_list = []
 
-    for (client, server), group in df_filtered.groupby(['client', 'server']):
+    for (client, server, block), group in df_filtered.groupby(['client', 'server', 'block']):
         group = group.reset_index(drop=True)
         
-        # Iteramos até len - 1 pois o último segmento não tem um "próximo" para comparar
         for i in range(len(group) - 1):
-            curr_seg = group.iloc[i]     # Ex: Segmento 0
-            next_seg = group.iloc[i+1]   # Ex: Segmento 1
+            curr_seg = group.iloc[i]
+            next_seg = group.iloc[i+1]
             
             feat = {
                 'client': curr_seg['client'],
                 'server': curr_seg['server'],
+                'block': curr_seg['block'],
                 'segment_number': curr_seg['segment_number'],
-                'timestamp': curr_seg['timestamp'] # Timestamp do changepoint
+                'timestamp': curr_seg['final_timestamp']
             }
             
-            # RTT Deltas: Próximo (1) - Atual (0)
             feat['d_rtt_up'] = next_seg['rtt_up_median'] - curr_seg['rtt_up_median']
             feat['d_rtt_down'] = next_seg['rtt_down_median'] - curr_seg['rtt_down_median']
             
-            # Throughput Deltas: (Próximo - Atual) / (Atual + eps)
             feat['d_tp_up'] = (next_seg['tp_up_median'] - curr_seg['tp_up_median']) / (curr_seg['tp_up_median'] + eps)
             feat['d_tp_down'] = (next_seg['tp_down_median'] - curr_seg['tp_down_median']) / (curr_seg['tp_down_median'] + eps)
             
-            # Packet Loss Delta: Próximo (1) - Atual (0)
             feat['d_pl'] = next_seg['pl_mean'] - curr_seg['pl_mean']
             
-            # Sync_score: Usa o valor do momento da quebra (o metrics_at_threshold do ponto de transição)
             feat['sync_score'] = curr_seg['metrics_at_threshold'] / 5.0
             
             features_list.append(feat)
 
-    # 3. Salva o resultado
-    df_features = pd.DataFrame(features_list)
-    df_features.to_csv(output_path, index=False)
-    print(f"Features salvas em: {output_path}")
+    if features_list:
+        df_features = pd.DataFrame(features_list)
+        df_features.to_csv(output_path, index=False)
+        print(f"Features salvas em: {output_path}")
+    else:
+        print("Nenhuma feature gerada.")
         
 if __name__ == "__main__":
-    scenario = "NDT_NOV_ABR"
-    # method = "cusum"  # or "cpd"
-    # methods = ["cusum", "pelt", "vwcd"]
-    threshold = 0.99
-    # for method in methods:
-    #     result_df = segment_series_by_changepoints(scenario, method, threshold)
+    scenario = "NDT"
+    threshold = 0.95
     method = "vwcd"
     ref_metric = "rtt_down"
-    segment_series_by_threshold(scenario, method, threshold, ref_metric)
+    # segment_series(scenario, method, threshold, ref_metric)
     feature_extraction(scenario, method, threshold, ref_metric)

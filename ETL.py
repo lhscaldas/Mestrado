@@ -145,7 +145,7 @@ def NDT_clean(
     df.to_csv(clean_file_path, index=False)
 
 
-def NDT_export(df_pandas, output_dir, metadata_csv_filename):
+def NDT_export_old(df_pandas, output_dir, metadata_csv_filename):
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -199,6 +199,64 @@ def NDT_export(df_pandas, output_dir, metadata_csv_filename):
     print(f"Metadados salvos com sucesso em: {metadata_csv_filename}")
     print(f"Séries temporais (.csv) salvas em: {output_dir}")
 
+import os
+import pandas as pd
+import numpy as np
+
+def NDT_export(df_pandas, output_dir, metadata_csv_filename):
+
+    os.makedirs(output_dir, exist_ok=True)
+    med = []
+
+    df_pandas['timestamp'] = pd.to_datetime(df_pandas['timestamp'])
+
+    for (c, s, bloco), df_pair in df_pandas.groupby(['client_name', 'server_name', 'id_bloco']):
+        
+        bloco_str = f"seg{int(bloco):02d}"
+        
+        df_ts = pd.DataFrame({
+            'timestamp': df_pair['timestamp'].values,
+            'rtt_download': df_pair['rtt_download'].values,
+            'throughput_download': df_pair['throughput_download'].values,
+            'rtt_upload': df_pair['rtt_upload'].values,
+            'throughput_upload': df_pair['throughput_upload'].values,
+            'packet_loss': df_pair['packet_loss'].values
+        })
+        df_ts.sort_values(by='timestamp', inplace=True)
+
+        output_file = f"{output_dir}/{c}_{s}_{bloco_str}.csv" 
+
+        if df_ts['timestamp'].duplicated().any():
+            print(f"Série temporal para cliente '{c}', site '{s}', {bloco_str} possui timestamps duplicados. Pulando a exportação deste arquivo.")
+            continue
+
+        else:
+            df_ts.to_csv(output_file, index=False) 
+
+            df_pair_sorted = df_pair.sort_values(by='timestamp')
+            inicio = df_pair_sorted['timestamp'].iloc[0]
+            fim = df_pair_sorted['timestamp'].iloc[-1]
+            num_med = len(df_pair)
+            
+            if num_med > 1:
+                mean_time = np.round(df_pair_sorted['timestamp'].diff().mean().total_seconds() / 3600, 1)
+            else:
+                mean_time = 0.0
+                
+            file_prefix = f"{c}_{s}_{bloco_str}"
+            
+            quant = {
+                "client": c, "site": s, "seguimento": bloco_str, "inicio": inicio, "fim": fim,
+                "num_med": num_med, "mean_time": mean_time, "file_prefix": file_prefix
+            }
+            med.append(quant)
+
+    df_metadata = pd.DataFrame(med)
+    df_metadata.to_csv(metadata_csv_filename, index=False)
+    
+    print(f"Metadados salvos com sucesso em: {metadata_csv_filename}")
+    print(f"Séries temporais (.csv) salvas em: {output_dir}")
+
 def NDT_split(input_folder: str):
     col_to_suffix = {
         'rtt_download': 'rtt_down',
@@ -244,7 +302,7 @@ if __name__ == "__main__":
     # Transforma o CSV bruto em um CSV com colunas mais amigáveis e unidades convertidas
     path_folder = 'NDT dataset'
     file_name = 'NDT_raw.csv'
-    # NDT_transform(path_folder, file_name)
+    NDT_transform(path_folder, file_name)
 
     # Limpa o CSV transformado, removendo linhas com valores nulos ou negativos, e outros tipos de limpeza
     NDT_clean(
@@ -255,14 +313,14 @@ if __name__ == "__main__":
     )
 
     # Exporta as séries temporais e metadados
-    # clean_path = os.path.join(path_folder, file_name.replace('raw', 'clean'))
-    # df_clean = pd.read_csv(clean_path)
-    # output_dir = os.path.join('series', 'NDT_NOV_ABR', 'full')
-    # NDT_export(
-    #     df_pandas=df_clean,
-    #     output_dir=output_dir, 
-    #     metadata_csv_filename=clean_path.replace('clean', 'metadata')
-    # )
+    clean_path = os.path.join(path_folder, file_name.replace('raw', 'clean'))
+    df_clean = pd.read_csv(clean_path)
+    output_dir = os.path.join('series', 'NDT', 'full')
+    NDT_export(
+        df_pandas=df_clean,
+        output_dir=output_dir, 
+        metadata_csv_filename=clean_path.replace('clean', 'metadata')
+    )
 
     # # Separa as séries temporais em arquivos distintos por métrica
-    # split_NDT_metrics_csv(input_folder=output_dir)
+    NDT_split(input_folder=output_dir)

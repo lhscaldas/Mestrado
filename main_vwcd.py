@@ -64,20 +64,12 @@ def multiple_files(cenario, method, threshold=0.95):
 if __name__ == "__main__":
     print("Starting VWCD change point detection...")
     import time
-    # begin = time.time()
-
     method = "vwcd"
     
     threshold = 0.95
 
-    # cenario = "teste"
-    # file = "teste01.csv"
-    # single_file(cenario, method, file)
 
-    # end = time.time()
-    # print(f"Tempo total: {end - begin:.2f} segundos")
-
-    NDT_folder = "NDT_NOV_ABR"
+    NDT_folder = "NDT"
     cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
     for cenario in cenarios:
         begin = time.time()

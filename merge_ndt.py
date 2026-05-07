@@ -107,8 +107,8 @@ def merge_probabilities_with_series(root_path, method, series_path):
             merged_df.to_csv(prob_file_path, index=False)
 
 if __name__ == "__main__":
-    root_path = "results/NDT_NOV_ABR"  # Substitua pelo caminho real dos seus dados
+    root_path = "results/NDT"  # Substitua pelo caminho real dos seus dados
     method = "vwcd"  # Substitua pelo nome do método que você deseja processar
     merge_csv_metrics(root_path, method)
-    series_path = "series/NDT_NOV_ABR"  # Substitua pelo caminho real dos seus dados de séries temporais
+    series_path = "series/NDT"  # Substitua pelo caminho real dos seus dados de séries temporais
     merge_probabilities_with_series(root_path, method, series_path)
