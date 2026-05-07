@@ -144,65 +144,6 @@ def NDT_clean(
     clean_file_path = os.path.join(path_folder, clean_file_name)
     df.to_csv(clean_file_path, index=False)
 
-
-def NDT_export_old(df_pandas, output_dir, metadata_csv_filename):
-
-    os.makedirs(output_dir, exist_ok=True)
-
-    clients = df_pandas['client_name'].unique()
-    sites = df_pandas['server_name'].unique()
-    med = []
-
-    # converte timestamp para datetime
-    df_pandas['timestamp'] = pd.to_datetime(df_pandas['timestamp'])
-
-    for c in clients:
-        for s in sites:
-            df_pair = df_pandas[(df_pandas.client_name == c) & (df_pandas.server_name == s)]
-                      
-            df_ts = pd.DataFrame({
-                'timestamp': df_pair['timestamp'].values,
-                'rtt_download': df_pair['rtt_download'].values,
-                'throughput_download': df_pair['throughput_download'].values,
-                'rtt_upload': df_pair['rtt_upload'].values,
-                'throughput_upload': df_pair['throughput_upload'].values,
-                'packet_loss': df_pair['packet_loss'].values
-            })
-            df_ts.sort_values(by='timestamp', inplace=True)
-
-            output_file = f"{output_dir}/{c}_{s}.csv" 
-
-            # verifica se o df_ts possui timestamps repetidos e, se sim, pular a exportação desse arquivo
-            if df_ts['timestamp'].duplicated().any():
-                print(f"Série temporal para cliente '{c}' e site '{s}' possui timestamps duplicados. Pulando a exportação deste arquivo.")
-                continue
-
-            else:
-                df_ts.to_csv(output_file, index=False) 
-
-                df_pair_sorted = df_pair.sort_values(by='timestamp')
-                inicio = df_pair_sorted['timestamp'].iloc[0]
-                fim = df_pair_sorted['timestamp'].iloc[-1]
-                num_med = len(df_pair)
-                mean_time = np.round(df_pair_sorted['timestamp'].diff().mean().total_seconds() / 3600, 1)
-                file_prefix = f"{c}_{s}"
-                
-                quant = {
-                    "client": c, "site": s, "inicio": inicio, "fim": fim,
-                    "num_med": num_med, "mean_time": mean_time, "file_prefix": file_prefix
-                }
-                med.append(quant)
-
-    df_metadata = pd.DataFrame(med)
-    df_metadata.to_csv(metadata_csv_filename, index=False)
-    
-    print(f"Metadados salvos com sucesso em: {metadata_csv_filename}")
-    print(f"Séries temporais (.csv) salvas em: {output_dir}")
-
-import os
-import pandas as pd
-import numpy as np
-
 def NDT_export(df_pandas, output_dir, metadata_csv_filename):
 
     os.makedirs(output_dir, exist_ok=True)
@@ -212,7 +153,7 @@ def NDT_export(df_pandas, output_dir, metadata_csv_filename):
 
     for (c, s, bloco), df_pair in df_pandas.groupby(['client_name', 'server_name', 'id_bloco']):
         
-        bloco_str = f"seg{int(bloco):02d}"
+        bloco_str = f"s{int(bloco):02d}"
         
         df_ts = pd.DataFrame({
             'timestamp': df_pair['timestamp'].values,
