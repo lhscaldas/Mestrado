@@ -64,8 +64,7 @@ def multiple_files(cenario, method, threshold=0.95):
 if __name__ == "__main__":
     print("Starting VWCD change point detection...")
     import time
-    method = "vwcd"
-    
+    method = "vwcd_fp2"
     threshold = 0.95
 
 
