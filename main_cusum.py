@@ -5,6 +5,19 @@ import scipy.stats as stats
 from plot_changepoint import plot_changepoint
 import optuna
 import shutil
+from river.drift import PageHinkley
+
+def river_cusum_page_hinkley(X, min_instances=30, delta=0.005, threshold=50):
+    # min_instances atua como sua janela (w0) para "aprender" a média inicial
+    cusum_ph = PageHinkley(min_instances=min_instances, delta=delta, threshold=threshold)
+    cp = []
+    
+    for t, y_t in enumerate(X):
+        cusum_ph.update(y_t)
+        if cusum_ph.drift_detected:
+            cp.append(t)
+            
+    return cp
 
 def wl_cusum(X, w0=30, w1=20, h=5.0):
     """
@@ -115,7 +128,8 @@ def single_file(cenario, file):
     X = data.iloc[:, 1].values
 
     # Detecção via CUSUM com inferência de parâmetros (MLE)
-    CP = wl_cusum(X)
+    # CP = wl_cusum(X)
+    CP = river_cusum_page_hinkley(X)
 
     results = pd.DataFrame({
         'timestamp': timestamps,
@@ -158,8 +172,9 @@ if __name__ == "__main__":
     # end = time.time()
     # print(f"Tempo total: {end - begin:.2f} segundos")
 
-    NDT_folder = "NDT_AGO_OUT"
-    cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    # NDT_folder = "NDT_AGO_OUT"
+    # cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    cenarios = ["NDT_rtt_test"]
     for cenario in cenarios:
         begin = time.time()
         multiple_files(cenario)
