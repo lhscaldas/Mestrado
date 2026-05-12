@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import os
 
 def plot_changepoint(cenario, method, file, threshold=0.95, tail_plot=False, show=False, save=False, slice=["",""], alias=""):
-    if method not in ['vwcd','cusum', 'pelt', 'compare','pure']:
+    if not (method.startswith('vwcd') or method in ['cusum', 'pelt', 'compare', 'pure']):
         raise ValueError("Method must be one of 'vwcd', 'cusum', 'pelt', or 'compare'.")
     if method in ['pelt', 'cusum'] and tail_plot:
         raise ValueError("Tail plot is only available for 'vwcd' or 'compare' methods.")
 
     serie_file = f'series/{cenario}/{file}'
     df_serie = pd.read_csv(serie_file)
-    df_serie['timestamp'] = pd.to_datetime(df_serie['timestamp'])
+    df_serie['timestamp'] = pd.to_datetime(df_serie['timestamp'], format='%Y-%m-%d %H:%M:%S')
     value_column = [col for col in df_serie.columns if col != 'timestamp'][0]
 
     start = pd.to_datetime(slice[0]) if slice[0] else df_serie['timestamp'].min()
@@ -18,20 +18,20 @@ def plot_changepoint(cenario, method, file, threshold=0.95, tail_plot=False, sho
     df_serie = df_serie[(df_serie['timestamp'] >= start) & (df_serie['timestamp'] <= end)]
 
     df_tail, df_cusum, df_pelt = None, None, None
-    if method == 'vwcd' or method == 'compare':
-        tail_file = f'results/{cenario}/vwcd/tail_probability_theta_ge_Tstar/{file}'
+    if method.startswith('vwcd') or method == 'compare':
+        tail_file = f'results/{cenario}/{method}/tail_probability_theta_ge_Tstar/{file}'
         df_tail = pd.read_csv(tail_file)
-        df_tail['timestamp'] = pd.to_datetime(df_tail['timestamp'])
+        df_tail['timestamp'] = pd.to_datetime(df_tail['timestamp'], format='%Y-%m-%d %H:%M:%S')
         df_tail = df_tail[(df_tail['timestamp'] >= start) & (df_tail['timestamp'] <= end)]
     if method == 'cusum' or method == 'compare':    
-        cusum_file = f'results/{cenario}/cusum/{file}'
+        cusum_file = f'results/{cenario}/{method}/cusum/{file}'
         df_cusum = pd.read_csv(cusum_file)
-        df_cusum['timestamp'] = pd.to_datetime(df_cusum['timestamp'])
+        df_cusum['timestamp'] = pd.to_datetime(df_cusum['timestamp'], format='%Y-%m-%d %H:%M:%S')
         df_cusum = df_cusum[(df_cusum['timestamp'] >= start) & (df_cusum['timestamp'] <= end)]
     if method == 'pelt' or method == 'compare':
-        pelt_file = f'results/{cenario}/pelt/{file}'
+        pelt_file = f'results/{cenario}/{method}/pelt/{file}'
         df_pelt = pd.read_csv(pelt_file)
-        df_pelt['timestamp'] = pd.to_datetime(df_pelt['timestamp'])
+        df_pelt['timestamp'] = pd.to_datetime(df_pelt['timestamp'], format='%Y-%m-%d %H:%M:%S')
         df_pelt = df_pelt[(df_pelt['timestamp'] >= start) & (df_pelt['timestamp'] <= end)]
     if method == 'pure':
         pass
@@ -85,7 +85,7 @@ def plot_changepoint(cenario, method, file, threshold=0.95, tail_plot=False, sho
         method_alias = method + f"_{alias}" if alias != "" else method
         if tail_plot:
             dir_path_serie = os.path.join('plots', cenario, method_alias, 'ts_tail_plot')
-        elif method in ['vwcd', 'compare']:
+        elif method.startswith('vwcd') or method == 'compare':
             dir_path_serie = os.path.join('plots', cenario, method_alias, 'ts_plot')
         else:
             dir_path_serie = os.path.join('plots', cenario, method_alias)

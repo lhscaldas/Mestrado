@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.mixture import GaussianMixture
 import re
 
-def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters=3, apply_clip=False):
+def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters=3, clean=False):
     # 1. Caminhos de entrada e saída
     input_dir = os.path.join("features", scenario)
     output_dir = os.path.join("clusters", scenario)
@@ -20,24 +20,30 @@ def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters
 
     # 2. Carregamento dos dados
     df = pd.read_csv(input_path)
-    feature_cols = ['d_rtt_down', 'd_tp_down', 'd_rtt_up', 'd_tp_up', 'd_pl']
-    df_clean = df.dropna(subset=feature_cols).copy()
+    feature_cols = ['d_rtt_down', 'd_tp_down', 'd_rtt_up', 'd_tp_up', 'd_pl', 'sync_score']
+    df['d_rtt_down'] = df['d_rtt_down_rel']
 
     # 3. Pré-processamento
-    if apply_clip:
-        for col in feature_cols:
-            lower = df_clean[col].quantile(0.01)
-            upper = df_clean[col].quantile(0.99)
-            df_clean[col] = df_clean[col].clip(lower=lower, upper=upper)
+    df_clean = df.dropna().copy()
+    corte = 10 # ms
+     
+    if clean:
+        df_clean = df_clean[
+        ((df_clean['d_rtt_down_abs'] > 0) & (df_clean['d_rtt_down_abs'] >= corte)) |
+        ((df_clean['d_rtt_down_abs'] < 0) & (df_clean['d_rtt_down_abs'] <= -corte))|
+        ((df_clean['d_rtt_up_abs'] > 0) & (df_clean['d_rtt_up_abs'] >= corte)) |
+        ((df_clean['d_rtt_up_abs'] < 0) & (df_clean['d_rtt_up_abs'] <= -corte))  
+        ] 
+        low = df_clean[feature_cols].quantile(0.01)
+        high = df_clean[feature_cols].quantile(0.95)
+        df_clean = df_clean[((df_clean[feature_cols] >= low) & (df_clean[feature_cols] <= high)).all(axis=1)]
 
-    # Ajuste específico para escala de probabilidade do PL se não estiver corrigido
-    if 'd_pl' in df_clean.columns and df_clean['d_pl'].abs().max() > 1.0:
-        df_clean['d_pl'] = df_clean['d_pl'] / 100.0
-
+    df_clean = df_clean.drop(columns=['d_rtt_down_abs', 'd_rtt_up_abs', 'd_rtt_down_rel', 'd_rtt_up_rel'])
+    
     # 4. Normalização
     scaler = StandardScaler()
     x_scaled = scaler.fit_transform(df_clean[feature_cols])
-
+    
     # 5. Treinamento do GMM
     gmm = GaussianMixture(n_components=n_clusters, covariance_type='full', random_state=42)
     df_clean['cluster'] = gmm.fit_predict(x_scaled)
@@ -115,10 +121,10 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
                 if aic and bic and ll:
                     data.append({
                         'K': k_val,
-                        'Events': int(events.group(1)) if events else 0,
+                        'Log-Likelihood': float(ll.group(1)),
                         'AIC': float(aic.group(1)),
                         'BIC': float(bic.group(1)),
-                        'Log-Likelihood': float(ll.group(1))
+
                     })
 
     if not data:
@@ -142,7 +148,7 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
 
 if __name__ == "__main__":
     scenario = "NDT"
-    method = "vwcd"
+    method = "vwcd_fp1"
     ref_metric = "rtt_down"
     threshold = 0.95
     for k in range(2, 11):
@@ -152,7 +158,7 @@ if __name__ == "__main__":
             ref_metric=ref_metric,
             threshold=threshold,
             n_clusters=k,
-            apply_clip=False
+            clean=True
         )
     compile_cluster_reports(
         scenario=scenario,

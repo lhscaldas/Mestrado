@@ -150,8 +150,9 @@ def _align_on_timestamp(
     """
     df_votes = df_votes.copy()
     df_conf = df_conf.copy()
-    df_votes[ts_votes] = pd.to_datetime(df_votes[ts_votes])
-    df_conf[ts_conf] = pd.to_datetime(df_conf[ts_conf])
+    df_votes[ts_votes] = pd.to_datetime(df_votes[ts_votes], format='%Y-%m-%d %H:%M:%S')
+    df_conf[ts_conf] = pd.to_datetime(df_conf[ts_conf], format='%Y-%m-%d %H:%M:%S')
+
 
     # --- Detect duplicates: MUST be one-to-one for safe alignment ---
     if df_votes[ts_votes].duplicated().any():
@@ -439,10 +440,6 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     df_votes = pd.read_csv(votes_file)
     df_conf = pd.read_csv(conf_file)
 
-    # --- for safety, ensure timestamp columns are datetime ---
-    df_votes['ts_votes'] = pd.to_datetime(df_votes['ts_votes'])
-    df_conf['ts_conf'] = pd.to_datetime(df_conf['ts_conf'])
-
     # --- Infer columns and Nexp ---
     ts_votes, val_col, vote_cols = _infer_vote_columns(df_votes)
     n_exp = len(vote_cols)
@@ -585,7 +582,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     # Ask user for decision costs
     # C_FP = _prompt_float("Enter cost of FALSE POSITIVE (C_FP) (e.g., 1): ", min_value=0.0)
     # C_FN = _prompt_float("Enter cost of FALSE NEGATIVE (C_FN) (e.g., 1): ", min_value=0.0)
-    C_FP = 2.0
+    C_FP = 1.0
     C_FN = 1.0
     
     if C_FP == 0.0 and C_FN == 0.0:

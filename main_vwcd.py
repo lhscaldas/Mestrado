@@ -59,13 +59,16 @@ def multiple_files(cenario, method, threshold=0.95):
                 plot_changepoint(cenario, method, file, threshold=threshold, save=True)
                 plot_changepoint(cenario, method, file, threshold=threshold, save=True, tail_plot=True)
             except Exception as e:
+                print(f"Erro ao processar o arquivo '{file}': {e}")
                 continue
+
+
 
 if __name__ == "__main__":
     print("Starting VWCD change point detection...")
     import time
-    method = "vwcd_fp2"
-    threshold = 0.95
+    method = "vwcd_fp1"
+    threshold = 0.95 # Só influencia nos plots
 
 
     NDT_folder = "NDT"

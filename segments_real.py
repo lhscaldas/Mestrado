@@ -4,7 +4,7 @@ from pathlib import Path
 
 def segment_series(scenario, method, threshold, ref_metric):
     input_dir = os.path.join("results", scenario, "full", method)
-    output_dir = os.path.join("segments", scenario, "full")
+    output_dir = os.path.join("segments", scenario)
     os.makedirs(output_dir, exist_ok=True)
     
     prob_cols = ['P_rtt_down', 'P_tp_down', 'P_rtt_up', 'P_tp_up', 'P_pl']
@@ -68,6 +68,13 @@ def segment_series(scenario, method, threshold, ref_metric):
                 'n_points': len(group)
             }
 
+            # verificar se pl varia entre 0 e 1 ou 0 e 100
+            if 'pl' in group.columns:
+                pl_values = pd.to_numeric(group['pl'], errors='coerce')
+                if pl_values.max() > 1.0:
+                    group['pl'] = pl_values / 100.0
+            
+
             for metric in value_metrics:
                 if metric in group.columns:
                     values = pd.to_numeric(group[metric], errors='coerce')
@@ -83,12 +90,13 @@ def segment_series(scenario, method, threshold, ref_metric):
         output_df.to_csv(output_path, index=False)
 
 def feature_extraction(scenario, method, threshold, ref_metric):
-    folder_path = os.path.join("segments", scenario, "full")
+    folder_path = os.path.join("segments", scenario)
     file_name = f"{method}_{ref_metric}_{threshold}.csv"
     input_path = os.path.join(folder_path, file_name)
     output_path = os.path.join("features", scenario, f"features_{file_name}")
     
     if not os.path.exists(input_path):
+        print(f"Erro: Arquivo {input_path} not found.")
         return
     
     if not os.path.exists(output_path):
@@ -124,8 +132,11 @@ def feature_extraction(scenario, method, threshold, ref_metric):
                 'timestamp': curr_seg['final_timestamp']
             }
             
-            feat['d_rtt_up'] = next_seg['rtt_up_median'] - curr_seg['rtt_up_median']
-            feat['d_rtt_down'] = next_seg['rtt_down_median'] - curr_seg['rtt_down_median']
+            feat['d_rtt_up_rel'] = (next_seg['rtt_up_median'] - curr_seg['rtt_up_median']) / (curr_seg['rtt_up_median'] + eps)
+            feat['d_rtt_down_rel'] = (next_seg['rtt_down_median'] - curr_seg['rtt_down_median'])  / (curr_seg['rtt_down_median'] + eps)
+
+            feat['d_rtt_up_abs'] = (next_seg['rtt_up_median'] - curr_seg['rtt_up_median'])
+            feat['d_rtt_down_abs'] = (next_seg['rtt_down_median'] - curr_seg['rtt_down_median'])
             
             feat['d_tp_up'] = (next_seg['tp_up_median'] - curr_seg['tp_up_median']) / (curr_seg['tp_up_median'] + eps)
             feat['d_tp_down'] = (next_seg['tp_down_median'] - curr_seg['tp_down_median']) / (curr_seg['tp_down_median'] + eps)
@@ -146,7 +157,7 @@ def feature_extraction(scenario, method, threshold, ref_metric):
 if __name__ == "__main__":
     scenario = "NDT"
     threshold = 0.95
-    method = "vwcd"
+    method = "vwcd_fp1"
     ref_metric = "rtt_down"
-    # segment_series(scenario, method, threshold, ref_metric)
+    segment_series(scenario, method, threshold, ref_metric)
     feature_extraction(scenario, method, threshold, ref_metric)
