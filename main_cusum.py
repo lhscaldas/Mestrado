@@ -6,9 +6,63 @@ from plot_changepoint import plot_changepoint
 import optuna
 import shutil
 from river.drift import PageHinkley
+from detecta import detect_cusum
 
-def river_cusum_page_hinkley(X, min_instances=30, delta=0.005, threshold=50):
-    # min_instances atua como sua janela (w0) para "aprender" a média inicial
+#------------------ Otimização de hiperparâmetros para CUSUM ------------------
+
+def generate_synthetic_data(n_points=300):
+    np.random.seed(42)
+    X = np.random.normal(0, 1, n_points)
+    true_cps = [100, 200]
+    X[100:200] += 2.0
+    X[200:] -= 1.0
+    return X, true_cps
+
+def evaluate_cps(true_cps, pred_cps, tolerance=10):
+    matched_preds = set()
+    tp = 0
+    for tcp in true_cps:
+        for pcp in pred_cps:
+            if pcp not in matched_preds and abs(tcp - pcp) <= tolerance:
+                tp += 1
+                matched_preds.add(pcp)
+                break
+    fp = len(pred_cps) - tp
+    fn = len(true_cps) - tp
+    
+    if tp == 0:
+        return 0.0
+    
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = 2 * (precision * recall) / (precision + recall)
+    return f1
+
+def objective(trial):
+    w0 = trial.suggest_int("w0", 10, 50)
+    w1 = trial.suggest_int("w1", 3, w0 - 1)
+    h = trial.suggest_float("h", 0.5, 15.0)
+    
+    X, true_cps = generate_synthetic_data(n_points=300)
+    pred_cps = wl_cusum(X, w0=w0, w1=w1, h=h)
+    
+    score = evaluate_cps(true_cps, pred_cps, tolerance=10)
+    return score
+
+def find_best_hyperparameters():
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=200)
+    
+    print("Melhores hiperparâmetros para séries de até 300 pontos:")
+    print(f"w0: {study.best_params['w0']}")
+    print(f"w1: {study.best_params['w1']}")
+    print(f"h: {study.best_params['h']:.3f}")
+    print(f"F1-Score: {study.best_value:.3f}")
+
+#------------------ Métodos de detecção de CP CUSUM based ---------------------
+
+def river_cusum(X, min_instances=30, delta=0.005, threshold=50): # Lib River (baseado no Page-Hinkley)
     cusum_ph = PageHinkley(min_instances=min_instances, delta=delta, threshold=threshold)
     cp = []
     
@@ -19,7 +73,27 @@ def river_cusum_page_hinkley(X, min_instances=30, delta=0.005, threshold=50):
             
     return cp
 
-def wl_cusum(X, w0=30, w1=20, h=5.0):
+def detecta_cusum(X, threshold=10.0, drift=0.5): # Lib detecta (baseado no cusum)
+    baseline_window = 20
+    if len(X) < baseline_window:
+        return []
+    s0 = np.std(X[:baseline_window], ddof=1)
+    s0 = max(s0, 1e-6)  # Evita divisão por zero
+
+    threshold = threshold * s0
+    drift = drift * s0
+
+    ta, _, _, _ = detect_cusum(
+        x=X,
+        threshold=threshold, # type: ignore
+        drift=drift, # type: ignore
+        ending=True,
+        show=False
+    )
+    
+    return list(ta)
+
+def wl_cusum(X, w0=20, w1=20, h=3.0, d=0.5): # Meu (Gemini)
     """
     Window-limited CUSUM - Based on the provided logic.
     Assumes Gaussian distribution and uses logpdf for statistic calculation.
@@ -30,6 +104,7 @@ def wl_cusum(X, w0=30, w1=20, h=5.0):
     lcp = 0 
     CP = []
     St = 0
+    last_zero_t = 0
     
     # Ensure there is enough data for the initial window
     if len(X) < w0:
@@ -45,75 +120,27 @@ def wl_cusum(X, w0=30, w1=20, h=5.0):
                 s0 = X[lcp:t].std(ddof=1)
                 s0 = max(s0, 1e-6)  # Avoid division by zero
                 Ht = h * s0
+                Dt = d * s0
             
             # Phase 2: Alternative hypothesis parameters (m1, s1) via sliding window w1
             # Ensures the w1 window does not cross the last change point
             start_w1 = max(t - w1, lcp)
             m1 = X[start_w1:t].mean()
-            s1 = X[start_w1:t].std(ddof=1) 
+            s1 = X[start_w1:t].std(ddof=1)
             s1 = max(s1, 1e-6) # Avoid division by zero
             
             # Update CUSUM statistic using Log-Likelihood Ratio
             LLR = logpdf(y_t, m1, s0) - logpdf(y_t, m0, s0) # type: ignore
-            St = max(0, St + LLR)
+            St = max(0, St + LLR - Dt) # type: ignore
+            last_zero_t = t if St == 0 else last_zero_t
             
             # Threshold check
             if St > Ht: # type: ignore
                 lcp = t
-                CP.append(lcp-w1//2)
+                CP.append(last_zero_t)
                 St = 0 # Statistic reset
             
     return CP
-
-# def generate_synthetic_data(n_points=300):
-#     np.random.seed(42)
-#     X = np.random.normal(0, 1, n_points)
-#     true_cps = [100, 200]
-#     X[100:200] += 2.0
-#     X[200:] -= 1.0
-#     return X, true_cps
-
-# def evaluate_cps(true_cps, pred_cps, tolerance=10):
-#     matched_preds = set()
-#     tp = 0
-#     for tcp in true_cps:
-#         for pcp in pred_cps:
-#             if pcp not in matched_preds and abs(tcp - pcp) <= tolerance:
-#                 tp += 1
-#                 matched_preds.add(pcp)
-#                 break
-#     fp = len(pred_cps) - tp
-#     fn = len(true_cps) - tp
-    
-#     if tp == 0:
-#         return 0.0
-    
-#     precision = tp / (tp + fp)
-#     recall = tp / (tp + fn)
-#     f1 = 2 * (precision * recall) / (precision + recall)
-#     return f1
-
-# def objective(trial):
-#     w0 = trial.suggest_int("w0", 10, 50)
-#     w1 = trial.suggest_int("w1", 3, w0 - 1)
-#     h = trial.suggest_float("h", 0.5, 15.0)
-    
-#     X, true_cps = generate_synthetic_data(n_points=300)
-#     pred_cps = wl_cusum(X, w0=w0, w1=w1, h=h)
-    
-#     score = evaluate_cps(true_cps, pred_cps, tolerance=10)
-#     return score
-
-# def find_best_hyperparameters():
-#     optuna.logging.set_verbosity(optuna.logging.WARNING)
-#     study = optuna.create_study(direction="maximize")
-#     study.optimize(objective, n_trials=200)
-    
-#     print("Melhores hiperparâmetros para séries de até 300 pontos:")
-#     print(f"w0: {study.best_params['w0']}")
-#     print(f"w1: {study.best_params['w1']}")
-#     print(f"h: {study.best_params['h']:.3f}")
-#     print(f"F1-Score: {study.best_value:.3f}")
 
 def single_file(cenario, file):
     series_folder = os.path.join("series", cenario)
@@ -128,8 +155,9 @@ def single_file(cenario, file):
     X = data.iloc[:, 1].values
 
     # Detecção via CUSUM com inferência de parâmetros (MLE)
-    # CP = wl_cusum(X)
-    CP = river_cusum_page_hinkley(X)
+    CP = wl_cusum(X)
+    # CP = river_cusum(X)
+    # CP = detecta_cusum(X)
 
     results = pd.DataFrame({
         'timestamp': timestamps,

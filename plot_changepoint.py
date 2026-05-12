@@ -236,12 +236,12 @@ def plot_one(cenario, method, file, threshold, save=False, tail_plot=False, show
         print(f"Error plotting {file}: {e}")
     
 
-def plot_folder(cenario, method, threshold, save=True, tail_plot=False, alias="", slice=["",""]):
+def plot_folder(cenario, method, threshold, save=True, tail_plot=False, alias="", slice=["",""], show=False):
     serie_folder = f'series/{cenario}'
     try:        
         for file in os.listdir(serie_folder):
             if file.endswith('.csv'):
-                plot_one(cenario, method, file, threshold, save=save, show=False, tail_plot=tail_plot, alias=alias, slice=slice)
+                plot_one(cenario, method, file, threshold, save=save, show=show, tail_plot=tail_plot, alias=alias, slice=slice)
     except ValueError as e:
         print(f"Error plotting folder '{serie_folder}': {e}")
 
@@ -258,9 +258,11 @@ if __name__ == "__main__":
     method = ["cusum", "pelt", "vwcd_fp1"]
 
     for cenario in cenarios:
-        # plot_folder(cenario, method, 0.95, save=True, tail_plot=True, alias="slice_FEV", slice=["2026-02-01", "2026-02-28"])
-        plot_folder(cenario, method, 0.95, save=True, tail_plot=False)
-        plot_folder(cenario, method, 0.95, save=True, tail_plot=True)
+        # plot_folder(cenario, method, 0.95, save=True, tail_plot=True, alias="slice_FEV", slice=["2026-02-01", "2026-02-28"]) # slice
+        # plot_folder(cenario, method, 0.95, save=False, tail_plot=True, show=True) # iterativo
+        plot_folder(cenario, method, 0.95, save=True, tail_plot=False) # comparação
+        plot_folder(cenario, method, 0.95, save=True, tail_plot=True) # comparação
+        # plot_folder(cenario, [], 0.95, save=True, tail_plot=False) # série pura 
 
     # cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
     # method = "pure"
