@@ -44,7 +44,7 @@ def objective(trial):
     h = trial.suggest_float("h", 0.5, 15.0)
     
     X, true_cps = generate_synthetic_data(n_points=300)
-    pred_cps = wl_cusum(X, w0=w0, w1=w1, h=h)
+    pred_cps = wl_cusum(X, w0=w0, w1=w1, h=h) # type: ignore
     
     score = evaluate_cps(true_cps, pred_cps, tolerance=10)
     return score
@@ -93,7 +93,41 @@ def detecta_cusum(X, threshold=10.0, drift=0.5): # Lib detecta (baseado no cusum
     
     return list(ta)
 
-def wl_cusum(X, w0=20, w1=20, h=3.0, d=0.5): # Meu (Gemini)
+def wl_cusum(X, w0=20, h=3.0, d=0.5): # original (gemini)
+    lcp = 0 
+    CP = []
+    Sp = 0
+    Sn = 0
+    last_zero_p = 0
+    last_zero_n = 0
+    
+    if len(X) < w0:
+        return []
+
+    for t, y_t in enumerate(X):
+        if t >= lcp + w0:              
+            if t == lcp + w0:
+                m0 = X[lcp:t].mean()
+                s0 = X[lcp:t].std(ddof=1)
+                s0 = max(s0, 1e-6) 
+                Ht = h * s0
+                Dt = d * s0
+            
+            Sp = max(0, Sp + y_t - m0 - Dt) # type: ignore
+            last_zero_p = t if Sp == 0 else last_zero_p
+            
+            Sn = max(0, Sn - y_t + m0 - Dt) # type: ignore
+            last_zero_n = t if Sn == 0 else last_zero_n
+            
+            if Sp > Ht or Sn > Ht: # type: ignore
+                lcp = t
+                CP.append(last_zero_p if Sp > Ht else last_zero_n) # type: ignore
+                Sp = 0 
+                Sn = 0
+            
+    return CP
+
+def wl_cusum_mod(X, w0=20, w1=20, h=20.0, d=1.0): # Meu
     """
     Window-limited CUSUM - Based on the provided logic.
     Assumes Gaussian distribution and uses logpdf for statistic calculation.
@@ -130,7 +164,7 @@ def wl_cusum(X, w0=20, w1=20, h=3.0, d=0.5): # Meu (Gemini)
             s1 = max(s1, 1e-6) # Avoid division by zero
             
             # Update CUSUM statistic using Log-Likelihood Ratio
-            LLR = logpdf(y_t, m1, s0) - logpdf(y_t, m0, s0) # type: ignore
+            LLR = logpdf(y_t, m1, s1) - logpdf(y_t, m0, s0) # type: ignore
             St = max(0, St + LLR - Dt) # type: ignore
             last_zero_t = t if St == 0 else last_zero_t
             
@@ -155,7 +189,8 @@ def single_file(cenario, file):
     X = data.iloc[:, 1].values
 
     # Detecção via CUSUM com inferência de parâmetros (MLE)
-    CP = wl_cusum(X)
+    # CP = wl_cusum(X)
+    CP = wl_cusum_mod(X)
     # CP = river_cusum(X)
     # CP = detecta_cusum(X)
 
