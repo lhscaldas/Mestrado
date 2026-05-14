@@ -18,9 +18,9 @@ def single_file(cenario, file):
     X = data.iloc[:, 1].values
 
     # Apply PELT algorithm
-    min_size = 4
-    algo = rpt.Pelt(model='rbf', min_size=min_size).fit(X)
-    pen = 2 * np.log(len(X)) # BIC-like penalty
+    min_size = 6
+    algo = rpt.Pelt(model='l2', min_size=min_size).fit(X)
+    pen = np.var(X) * np.log(len(X)) # type: ignore # BIC-like penalty 
     result = algo.predict(pen=pen)
     CP = np.array(result[:-1]).astype(int)
     CP = CP.tolist()
@@ -66,9 +66,8 @@ if __name__ == "__main__":
     # end = time.time()
     # print(f"Tempo total: {end - begin:.2f} segundos")
 
-    # NDT_folder = "NDT_AGO_OUT"
-    # cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
-    cenarios = ["NDT_rtt_test"]
+    NDT_folder = "NDT"
+    cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
     for cenario in cenarios:
         begin = time.time()
         multiple_files(cenario)

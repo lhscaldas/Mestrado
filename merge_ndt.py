@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-def merge_csv_metrics(root_path, method):
+def merge_csv_metrics_old(root_path, method):
     # Determine the input sub-directory and target column based on the method name
     if method.lower().startswith("vwcd"):
         input_sub_folder = "tail_probability_theta_ge_Tstar"
@@ -60,6 +60,58 @@ def merge_csv_metrics(root_path, method):
             # Save the final merged CSV
             merged_df.to_csv(output_file, index=False)
 
+def merge_csv_metrics(root_path, method):
+    is_vwcd = method.lower().startswith("vwcd")
+    if is_vwcd:
+        input_sub_folder = "tail_probability_theta_ge_Tstar"
+        value_col = "P_theta_ge_Tstar"
+        prefix = "P_"
+    else:
+        input_sub_folder = ""
+        value_col = "CP"
+        prefix = "CP_"
+    
+    output_base_dir = os.path.join(root_path, "full", method)
+    os.makedirs(output_base_dir, exist_ok=True)
+
+    metrics = [d for d in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, d)) and d != "full"]
+    
+    if not metrics:
+        return
+
+    reference_metric_path = os.path.join(root_path, metrics[0], method, input_sub_folder)
+    if not os.path.exists(reference_metric_path):
+        return
+        
+    csv_files = [f for f in os.listdir(reference_metric_path) if f.endswith('.csv')]
+
+    for file_name in csv_files:
+        merged_df = None
+
+        for metric in metrics:
+            file_path = os.path.join(root_path, metric, method, input_sub_folder, file_name)
+            
+            if os.path.exists(file_path):
+                df = pd.read_csv(file_path, dtype=str)
+                
+                if 'timestamp' in df.columns and value_col in df.columns:
+                    df['timestamp'] = df['timestamp'].str.strip()
+                    df[value_col] = df[value_col].str.strip()
+                    
+                    new_col_name = f"{prefix}{metric}"
+                    
+                    if merged_df is None:
+                        merged_df = df[['timestamp', value_col]].copy()
+                        merged_df.rename(columns={value_col: new_col_name}, inplace=True)
+                    else:
+                        temp_df = df[['timestamp', value_col]].copy()
+                        temp_df.rename(columns={value_col: new_col_name}, inplace=True)
+                        merged_df = pd.merge(merged_df, temp_df, on='timestamp', how='outer')
+
+        if merged_df is not None:
+            output_file = os.path.join(output_base_dir, file_name)
+            merged_df.to_csv(output_file, index=False)
+
 def merge_probabilities_with_series(root_path, method, series_path):
     # Paths for the probability CSVs and the real series CSVs
     prob_base_dir = os.path.join(root_path, "full", method)
@@ -108,7 +160,7 @@ def merge_probabilities_with_series(root_path, method, series_path):
 
 if __name__ == "__main__":
     root_path = "results/NDT"  # Substitua pelo caminho real dos seus dados
-    method = "vwcd_fp2"  # Substitua pelo nome do método que você deseja processar
+    method = "vwcd"  # Substitua pelo nome do método que você deseja processar
     merge_csv_metrics(root_path, method)
     series_path = "series/NDT"  # Substitua pelo caminho real dos seus dados de séries temporais
     merge_probabilities_with_series(root_path, method, series_path)

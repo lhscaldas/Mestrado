@@ -33,6 +33,9 @@ def NDT_transform(path_folder: str, file_name: str, anonimize: bool = True):
     # Renomeia a coluna download_retrans_percent para loss_rate
     df = df.rename(columns={"download_retrans_percent": "loss_rate"})
 
+    # Converte loss_rate de percentual para decimal
+    df['loss_rate'] = df['loss_rate'] / 100.0
+
     # Criando a coluna nome do cliente a partir do MAC
     df_device = pd.read_csv(path_folder + '/devices.csv')
     df['client_name'] = df['mac_address'].map(df_device.set_index('mac')['owner'])
@@ -93,7 +96,9 @@ def NDT_clean(
     path_folder: str, 
     file_name: str,
     limite_horas: int,
-    seg_min: int
+    seg_min: int,
+    data_inicio: str = '',
+    data_fim: str = ''
 ):
     
     metricas = [
@@ -127,6 +132,14 @@ def NDT_clean(
 
     # 2. Ordenar por tempo e par
     df = df.sort_values(by=['client_server_pair', 'timestamp']).reset_index(drop=True)
+
+    # Remover medições anteriores data inicio ou posteriores a data fim, se fornecidas
+    if data_inicio != '':
+        data_inicio = pd.to_datetime(data_inicio, utc=True)  # type: ignore
+        df = df[df['timestamp'] >= data_inicio].copy()
+    if data_fim != '':
+        data_fim = pd.to_datetime(data_fim, utc=True)  # type: ignore
+        df = df[df['timestamp'] <= data_fim].copy()
 
     # 3. Criar coluna com a diferença de tempo (agora os pulos de tempo serão reais)
     df['delta_tempo_horas'] = df.groupby('client_server_pair')['timestamp'].diff().dt.total_seconds() / 3600
@@ -249,7 +262,9 @@ if __name__ == "__main__":
     path_folder=path_folder, 
     file_name=file_name.replace('raw', 'transformed'),
     limite_horas=12,
-    seg_min=300
+    seg_min=300,
+    data_inicio='2025-10-04',
+    data_fim=''
     )
 
     # Exporta as séries temporais e metadados

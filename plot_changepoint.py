@@ -252,10 +252,10 @@ if __name__ == "__main__":
     # file = "teste01.csv"
     # plot_one(cenario, method, file, 0.95, save=False, show=True, tail_plot=False)
 
-    # NDT_folder = "NDT"
-    # cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
-    cenarios = ["NDT_rtt_test"]
-    method = ["cusum", "pelt", "vwcd_fp1"]
+    NDT_folder = "NDT"
+    cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    # cenarios = ["NDT_rtt_test"]
+    method = ["cusum", "pelt", "vwcd"]
 
     for cenario in cenarios:
         # plot_folder(cenario, method, 0.95, save=True, tail_plot=True, alias="slice_FEV", slice=["2026-02-01", "2026-02-28"]) # slice
