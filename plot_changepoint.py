@@ -2,105 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-def plot_changepoint_old(cenario, method, file, threshold=0.95, tail_plot=False, show=False, save=False, slice=["",""], alias=""):
-    if not (method.startswith('vwcd') or method in ['cusum', 'pelt', 'compare', 'pure']):
-        raise ValueError("Method must be one of 'vwcd', 'cusum', 'pelt', or 'compare'.")
-    if method in ['pelt', 'cusum'] and tail_plot:
-        raise ValueError("Tail plot is only available for 'vwcd' or 'compare' methods.")
-
-    serie_file = f'series/{cenario}/{file}'
-    df_serie = pd.read_csv(serie_file)
-    df_serie['timestamp'] = pd.to_datetime(df_serie['timestamp'], format='%Y-%m-%d %H:%M:%S')
-    value_column = [col for col in df_serie.columns if col != 'timestamp'][0]
-
-    start = pd.to_datetime(slice[0]) if slice[0] else df_serie['timestamp'].min()
-    end = pd.to_datetime(slice[1]) if slice[1] else df_serie['timestamp'].max()
-    df_serie = df_serie[(df_serie['timestamp'] >= start) & (df_serie['timestamp'] <= end)]
-
-    df_tail, df_cusum, df_pelt = None, None, None
-    if method.startswith('vwcd') or method == 'compare':
-        tail_file = f'results/{cenario}/{method}/tail_probability_theta_ge_Tstar/{file}'
-        df_tail = pd.read_csv(tail_file)
-        df_tail['timestamp'] = pd.to_datetime(df_tail['timestamp'], format='%Y-%m-%d %H:%M:%S')
-        df_tail = df_tail[(df_tail['timestamp'] >= start) & (df_tail['timestamp'] <= end)]
-    if method == 'cusum' or method == 'compare':    
-        cusum_file = f'results/{cenario}/{method}/cusum/{file}'
-        df_cusum = pd.read_csv(cusum_file)
-        df_cusum['timestamp'] = pd.to_datetime(df_cusum['timestamp'], format='%Y-%m-%d %H:%M:%S')
-        df_cusum = df_cusum[(df_cusum['timestamp'] >= start) & (df_cusum['timestamp'] <= end)]
-    if method == 'pelt' or method == 'compare':
-        pelt_file = f'results/{cenario}/{method}/pelt/{file}'
-        df_pelt = pd.read_csv(pelt_file)
-        df_pelt['timestamp'] = pd.to_datetime(df_pelt['timestamp'], format='%Y-%m-%d %H:%M:%S')
-        df_pelt = df_pelt[(df_pelt['timestamp'] >= start) & (df_pelt['timestamp'] <= end)]
-    if method == 'pure':
-        pass
-
-    ax2=None
-    if tail_plot:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
-    else:
-        fig, ax1 = plt.subplots(figsize=(12, 5))
-    
-    ax1.plot(df_serie['timestamp'], df_serie[value_column], label='Data', 
-             linewidth=1, color='gray', marker='o', 
-             markerfacecolor='black', markeredgecolor='black', markersize=5)
-
-    if df_tail is not None:    
-        CP_vwcd = df_tail[df_tail['P_theta_ge_Tstar'] > threshold]['timestamp']
-        for i, cp in enumerate(CP_vwcd):
-            ax1.axvline(x=cp, color='red', linestyle='-', linewidth=4, alpha=0.7, zorder=2, label='CP VWCD' if i == 0 else "")
-    if df_cusum is not None:
-        CP_cusum = df_cusum[df_cusum['CP'] == 1]['timestamp']
-        for i, cp in enumerate(CP_cusum):
-            ax1.axvline(x=cp, color='green', linestyle='--', linewidth=2, zorder=3, label='CP CUSUM' if i == 0 else "")
-    if df_pelt is not None:
-        CP_pelt = df_pelt[df_pelt['CP'] == 1]['timestamp']
-        for i, cp in enumerate(CP_pelt):
-            ax1.axvline(x=cp, color='blue', linestyle=':', linewidth=2.5, zorder=4, label='CP PELT' if i == 0 else "")
-
-    file_alias = file + f" ({alias})" if alias != "" else file
-    if method == 'compare':
-        ax1.set_title(f'Change Point Detection Comparison - {file_alias}')
-    elif method == 'pure':
-        ax1.set_title(f'Time Series - {file_alias}')
-    else:
-        ax1.set_title(f'{method.upper()} - {file_alias}')
-    ax1.set_ylabel(value_column.capitalize())
-    ax1.set_xlabel('Time')
-    ax1.legend(loc='lower right')
-
-    if (ax2 is not None) and (df_tail is not None):
-        ax2.plot(df_tail['timestamp'], df_tail['P_theta_ge_Tstar'], color='gray', label='Tail Probability')
-        ax2.axhline(y=threshold, color='red', linestyle='-', label=f'Threshold ({threshold})')
-        
-        ax2.set_title(r"Tail Probability Over Time: $P(\theta \geq T^*)$")
-        ax2.set_ylabel(r"$P(\theta \geq T^*)$")
-        ax2.set_xlabel('Time')
-        ax2.legend(loc='center right')
-
-    fig.tight_layout()
-
-    if save:
-        method_alias = method + f"_{alias}" if alias != "" else method
-        if tail_plot:
-            dir_path_serie = os.path.join('plots', cenario, method_alias, 'ts_tail_plot')
-        elif method.startswith('vwcd') or method == 'compare':
-            dir_path_serie = os.path.join('plots', cenario, method_alias, 'ts_plot')
-        else:
-            dir_path_serie = os.path.join('plots', cenario, method_alias)
-        os.makedirs(dir_path_serie, exist_ok=True)
-        plot_file_serie = os.path.join(dir_path_serie, file.replace('.csv', '.png'))
-        if os.path.exists(plot_file_serie):
-            os.remove(plot_file_serie)
-        fig.savefig(plot_file_serie)
-
-    if show:
-        plt.show()
-    
-    plt.close("all")
-
-def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, show=False, save=False, slice=["", ""], alias=""):
+def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, show=False, save=False, slice_window=["", ""], alias=""):
     if isinstance(methods, str):
         methods = [methods] if methods else []
         
@@ -124,8 +26,8 @@ def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, sh
     if tail_plot and not vwcd_method:
         raise ValueError("Tail plot is only available if a 'vwcd' method is provided.")
 
-    start = pd.to_datetime(slice[0]) if (len(slice) > 0 and slice[0]) else None
-    end = pd.to_datetime(slice[1]) if (len(slice) > 1 and slice[1]) else None
+    start = pd.to_datetime(slice_window[0]) if (len(slice_window) > 0 and slice_window[0]) else None
+    end = pd.to_datetime(slice_window[1]) if (len(slice_window) > 1 and slice_window[1]) else None
 
     def load_and_slice_df(filepath):
         if not os.path.exists(filepath):
@@ -229,19 +131,19 @@ def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, sh
     
     plt.close("all")
 
-def plot_one(cenario, method, file, threshold, save=False, tail_plot=False, show=False, alias="", slice=["",""]):
+def plot_one(cenario, method, file, threshold, save=False, tail_plot=False, show=False, alias="", slice_window=["",""]):
     try:
-        plot_changepoint(cenario, method, file, threshold, save=save, show=show, tail_plot=tail_plot, alias=alias, slice=slice)
+        plot_changepoint(cenario, method, file, threshold, save=save, show=show, tail_plot=tail_plot, alias=alias, slice_window=slice_window)
     except Exception as e:
         print(f"Error plotting {file}: {e}")
     
 
-def plot_folder(cenario, method, threshold, save=True, tail_plot=False, alias="", slice=["",""], show=False):
+def plot_folder(cenario, method, threshold, save=True, tail_plot=False, alias="", slice_window=["",""], show=False):
     serie_folder = f'series/{cenario}'
     try:        
         for file in os.listdir(serie_folder):
             if file.endswith('.csv'):
-                plot_one(cenario, method, file, threshold, save=save, show=show, tail_plot=tail_plot, alias=alias, slice=slice)
+                plot_one(cenario, method, file, threshold, save=save, show=show, tail_plot=tail_plot, alias=alias, slice_window=slice_window)
     except ValueError as e:
         print(f"Error plotting folder '{serie_folder}': {e}")
 

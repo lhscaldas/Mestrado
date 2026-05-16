@@ -8,7 +8,7 @@ import re
 def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters=3, clean=False):
     # 1. Caminhos de entrada e saída
     input_dir = os.path.join("features", scenario)
-    output_dir = os.path.join("clusters", scenario)
+    output_dir = os.path.join("clusters", scenario, method)
     os.makedirs(output_dir, exist_ok=True)
     
     file_name = f"features_{method}_{ref_metric}_{threshold}.csv"
@@ -22,6 +22,7 @@ def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters
     df = pd.read_csv(input_path)
     feature_cols = ['d_rtt_down', 'd_tp_down', 'd_rtt_up', 'd_tp_up', 'd_pl', 'sync_score']
     df['d_rtt_down'] = df['d_rtt_down_rel']
+    df['d_rtt_up'] = df['d_rtt_up_rel']
 
     # 3. Pré-processamento
     df_clean = df.dropna().copy()
@@ -148,7 +149,7 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
 
 if __name__ == "__main__":
     scenario = "NDT"
-    method = "vwcd_fp1"
+    method = "cusum"
     ref_metric = "rtt_down"
     threshold = 0.95
     for k in range(2, 11):
@@ -160,9 +161,9 @@ if __name__ == "__main__":
             n_clusters=k,
             clean=True
         )
-    compile_cluster_reports(
-        scenario=scenario,
-        method=method,
-        ref_metric=ref_metric,
-        threshold=threshold
-    )
+    # compile_cluster_reports(
+    #     scenario=scenario,
+    #     method=method,
+    #     ref_metric=ref_metric,
+    #     threshold=threshold
+    # )
