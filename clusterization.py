@@ -11,7 +11,10 @@ def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters
     output_dir = os.path.join("clusters", scenario, method)
     os.makedirs(output_dir, exist_ok=True)
     
-    file_name = f"features_{method}_{ref_metric}_{threshold}.csv"
+    if method.startswith("vwcd"):
+        file_name = f"features_{method}_{ref_metric}_{threshold}.csv"
+    else:
+        file_name = f"features_{method}_{ref_metric}.csv"
     input_path = os.path.join(input_dir, file_name)
     
     if not os.path.exists(input_path):
@@ -149,7 +152,7 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
 
 if __name__ == "__main__":
     scenario = "NDT"
-    method = "cusum"
+    method = "pelt"
     ref_metric = "rtt_down"
     threshold = 0.95
     for k in range(2, 11):
