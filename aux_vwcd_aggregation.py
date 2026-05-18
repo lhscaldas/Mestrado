@@ -260,6 +260,7 @@ def _stackplot_time_series(
         plt.savefig(file)
     else:
         plt.show()
+    plt.close()
 
 
 def _plot_time_series(times: np.ndarray, y: np.ndarray, title: str, ylabel: str, file = None) -> None:
@@ -276,6 +277,7 @@ def _plot_time_series(times: np.ndarray, y: np.ndarray, title: str, ylabel: str,
         plt.savefig(file)
     else:
         plt.show()
+    plt.close()
 
 
 # ---------------------------- Entropy–KL aggregation (NEW) ----------------------------
@@ -412,7 +414,7 @@ def entropy_kl_aggregate_time_series(
 
 # ---------------------------- Main script ----------------------------
 
-def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_detail,tail_csv,stack_plot_file=None, stack_plot_conf_file=None, agg_plot_file=None,tail_plot_file=None,            plot=False) -> None:
+def aggregation_from_input_votes_confs(W, C_FP, C_FN, votes_file,conf_file,out_csv,out_csv_detail,tail_csv,stack_plot_file=None, stack_plot_conf_file=None, agg_plot_file=None,tail_plot_file=None, plot=False) -> None:
     # print("\n=== Expert Vote + Confidence Ingestion + Entropy–KL Aggregation ===\n")
 
     # votes_file = input("Enter VOTES CSV filename/path: ").strip()
@@ -424,7 +426,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
 
     k_begin = 5
     k_end = 4
-    W = 20
+    W = W
 
     # Gamma selection parameters (per prompt)
     # print("\nGamma selection (per downweighting target):")
@@ -582,8 +584,8 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
     # Ask user for decision costs
     # C_FP = _prompt_float("Enter cost of FALSE POSITIVE (C_FP) (e.g., 1): ", min_value=0.0)
     # C_FN = _prompt_float("Enter cost of FALSE NEGATIVE (C_FN) (e.g., 1): ", min_value=0.0)
-    C_FP = 1.0
-    C_FN = 1.0
+    C_FP = C_FP
+    C_FN = C_FN
     
     if C_FP == 0.0 and C_FN == 0.0:
         raise ValueError("At least one of C_FP or C_FN must be > 0.")
@@ -659,6 +661,7 @@ def aggregation_from_input_votes_confs(votes_file,conf_file,out_csv,out_csv_deta
             plt.savefig(tail_plot_file)
         else:
             plt.show()
+        plt.close()
     
     # Save tail probability CSV
     # tail_csv = "tail_probability_theta_ge_Tstar.csv"

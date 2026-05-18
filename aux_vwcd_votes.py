@@ -40,7 +40,7 @@ import math
 import csv
 import numpy as np
 
-def window_votes(csv_file, votes_file, conf_file):
+def window_votes(W, csv_file, votes_file, conf_file):
     """
     % ----------------------------
     % User parameters
@@ -48,7 +48,7 @@ def window_votes(csv_file, votes_file, conf_file):
     """
     # csv_file = input("Enter input CSV filename: ").strip()
 
-    W = 20                   # window length
+    W = W                    # window length
     min_seg = 5              # min samples in EACH segment
     tol_prob = 1e-10         # tolerance for probability checks
     tol_sum  = 1e-8          # tolerance for sum-to-one checks

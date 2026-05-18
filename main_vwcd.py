@@ -4,7 +4,7 @@ import os
 from plot_changepoint import plot_changepoint
 import shutil
 
-def single_file(cenario, method, file):
+def single_file(W, C_FP, C_FN, cenario, method, file):
     # Define folders
     series_folder = os.path.join("series", cenario)
     results_folder = os.path.join("results", cenario, method)
@@ -35,10 +35,10 @@ def single_file(cenario, method, file):
     agg_plot_file = plots_folder + "/agg_plot/" + file.replace(".csv", ".png")
     tail_plot_file = plots_folder + "/tail_plot/" + file.replace(".csv", ".png")
 
-    window_votes(serie_file, votes_file, conf_file)
-    aggregation_from_input_votes_confs(votes_file,conf_file,agg_csv,agg_csv_detail,agg_tail_csv, stack_plot_file, stack_plot_conf_file, agg_plot_file, tail_plot_file, plot=True)
+    window_votes(W, serie_file, votes_file, conf_file)
+    aggregation_from_input_votes_confs(W, C_FP, C_FN, votes_file,conf_file,agg_csv,agg_csv_detail,agg_tail_csv, stack_plot_file, stack_plot_conf_file, agg_plot_file, tail_plot_file, plot=True)
 
-def multiple_files(cenario, method, threshold=0.95):
+def multiple_files(W, C_FP, C_FN, cenario, method, threshold=0.95):
     serie_folder = "series/"+ cenario
     files = os.listdir(serie_folder)
 
@@ -55,7 +55,7 @@ def multiple_files(cenario, method, threshold=0.95):
     for file in files:
         if file.endswith(".csv"):
             try:
-                single_file(cenario, method, file)
+                single_file(W, C_FP, C_FN, cenario, method, file)
                 plot_changepoint(cenario, method, file, threshold=threshold, save=True)
                 plot_changepoint(cenario, method, file, threshold=threshold, save=True, tail_plot=True)
             except Exception as e:
@@ -67,14 +67,18 @@ def multiple_files(cenario, method, threshold=0.95):
 if __name__ == "__main__":
     print("Starting VWCD change point detection...")
     import time
-    method = "vwcd"
+    method = "vwcd_w24"
     threshold = 0.95 # Só influencia nos plots
+    W = 24
+    C_FP = 1.0
+    C_FN = 1.0
 
 
     NDT_folder = "NDT"
-    cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    # cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    cenarios = ["NDT/pl"]
     for cenario in cenarios:
         begin = time.time()
-        multiple_files(cenario, method, threshold)
+        multiple_files(W, C_FP, C_FN, cenario, method, threshold)
         end = time.time()
         print(f"Cenário '{cenario}' processado em {end - begin:.2f} segundos")
