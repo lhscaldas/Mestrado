@@ -38,7 +38,7 @@ def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters
         ((df_clean['d_rtt_up_abs'] > 0) & (df_clean['d_rtt_up_abs'] >= corte)) |
         ((df_clean['d_rtt_up_abs'] < 0) & (df_clean['d_rtt_up_abs'] <= -corte))  
         ] 
-        low = df_clean[feature_cols].quantile(0.01)
+        low = float('-inf') # df_clean[feature_cols].quantile(0.01)
         high = df_clean[feature_cols].quantile(0.95)
         df_clean = df_clean[((df_clean[feature_cols] >= low) & (df_clean[feature_cols] <= high)).all(axis=1)]
 
