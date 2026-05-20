@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, show=False, save=False, slice_window=["", ""], alias=""):
+def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, show=False, save=False, slice_window=["", ""], alias="", metric=None):
     if isinstance(methods, str):
         methods = [methods] if methods else []
         
@@ -40,7 +40,8 @@ def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, sh
             df = df[df['timestamp'] <= end]
         return df
 
-    serie_file = os.path.join('series', cenario, file)
+    metric_val = metric if metric else cenario
+    serie_file = os.path.join('series', metric_val, file)
     df_serie = load_and_slice_df(serie_file)
     value_column = [col for col in df_serie.columns if col != 'timestamp'][0]
 
