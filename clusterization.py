@@ -38,9 +38,12 @@ def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters
         ((df_clean['d_rtt_up_abs'] > 0) & (df_clean['d_rtt_up_abs'] >= corte)) |
         ((df_clean['d_rtt_up_abs'] < 0) & (df_clean['d_rtt_up_abs'] <= -corte))  
         ] 
-        low = float('-inf') # df_clean[feature_cols].quantile(0.01)
-        high = df_clean[feature_cols].quantile(0.95)
-        df_clean = df_clean[((df_clean[feature_cols] >= low) & (df_clean[feature_cols] <= high)).all(axis=1)]
+        
+        limiares = {
+        'd_tp_up': 10,
+        'd_rtt_down': 10
+        }
+        df_clean = df_clean[~((df_clean['d_tp_up'] > limiares['d_tp_up']) | (df_clean['d_rtt_down'] > limiares['d_rtt_down']))]
 
     df_clean = df_clean.drop(columns=['d_rtt_down_abs', 'd_rtt_up_abs', 'd_rtt_down_rel', 'd_rtt_up_rel'])
     
@@ -152,7 +155,7 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
 
 if __name__ == "__main__":
     scenario = "NDT"
-    method = "pelt"
+    method = "vwcd_w24_fp2"
     ref_metric = "rtt_down"
     threshold = 0.95
     for k in range(2, 11):
