@@ -67,15 +67,16 @@ def multiple_files(W, C_FP, C_FN, cenario, method, threshold=0.95):
 if __name__ == "__main__":
     print("Starting VWCD change point detection...")
     import time
-    method = "vwcd_w24_fp2"
+    method = "vwcd_w20_fn2"
     threshold = 0.95 # Só influencia nos plots
-    W = 24
-    C_FP = 2.0
-    C_FN = 1.0
+    W = 20
+    C_FP = 1.0
+    C_FN = 2.0
 
 
     NDT_folder = "NDT"
-    cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    # cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    cenarios = [f"{NDT_folder}/pl", f"{NDT_folder}/tp_up"]
     for cenario in cenarios:
         begin = time.time()
         multiple_files(W, C_FP, C_FN, cenario, method, threshold)

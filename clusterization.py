@@ -157,7 +157,7 @@ if __name__ == "__main__":
     scenario = "NDT"
     method = "vwcd_w24_fp2"
     ref_metric = "rtt_down"
-    threshold = 0.95
+    threshold = 0.80
     for k in range(2, 11):
         cluster_and_save_results(
             scenario=scenario,
