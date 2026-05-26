@@ -176,8 +176,8 @@ def feature_extraction(scenario, method, threshold, ref_metric):
         
 if __name__ == "__main__":
     scenario = "NDT"
-    threshold = 0.8
-    methods = ["vwcd_w24_fp1"]
+    threshold = 0.95
+    methods = ["vwcd_w20_fn2"]
     ref_metric = "rtt_down"
     for method in methods:
         segment_series(scenario, method, threshold, ref_metric)

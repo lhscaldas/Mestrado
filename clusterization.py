@@ -99,6 +99,117 @@ def cluster_and_save_results(scenario, method, ref_metric, threshold, n_clusters
     print(f"CSV salvo em: {csv_path}")
     print(f"Relatorio salvo em: {report_path}")
 
+def manual_cluster_and_save_results(
+    scenario, method, ref_metric, threshold
+):
+    # 1. Caminhos de entrada e saída
+    input_dir = os.path.join("features", scenario)
+    output_dir = os.path.join("clusters", scenario, method)
+    os.makedirs(output_dir, exist_ok=True)
+
+    if method.startswith("vwcd"):
+        file_name = f"features_{method}_{ref_metric}_{threshold}.csv"
+    else:
+        file_name = f"features_{method}_{ref_metric}.csv"
+    input_path = os.path.join(input_dir, file_name)
+
+    if not os.path.exists(input_path):
+        print(f"Erro: Arquivo {input_path} not found.")
+        return
+
+    # 2. Carregamento dos dados
+    df = pd.read_csv(input_path)
+    df["d_rtt_down"] = df["d_rtt_down_rel"]
+    df["d_rtt_up"] = df["d_rtt_up_rel"]
+
+    # 3. Pré-processamento sem a limpeza condicional de outliers
+    df_clean = df.dropna().copy()
+
+    df_clean = df_clean.drop(
+        columns=[
+            "d_rtt_down_abs",
+            "d_rtt_up_abs",
+            "d_rtt_down_rel",
+            "d_rtt_up_rel",
+        ]
+    )
+
+    # 4. Regras de Classificação Manual expandidas para Downlink e Uplink (com E)
+    rtt_down = df_clean["d_rtt_down"]
+    tp_down = df_clean["d_tp_down"]
+    rtt_up = df_clean["d_rtt_up"]
+    tp_up = df_clean["d_tp_up"]
+
+    # Cluster 0: Variações estáveis em ambas as direções
+    cond_0 = (
+        (rtt_down >= -0.2)
+        & (rtt_down <= 0.2)
+        & (tp_down >= -0.2)
+        & (tp_down <= 0.2)
+        & (rtt_up >= -0.2)
+        & (rtt_up <= 0.2)
+        & (tp_up >= -0.2)
+        & (tp_up <= 0.2)
+    )
+
+    # Cluster 1: Degradação em ambas as direções (RTT sobe E TP cai)
+    cond_1 = (
+        (rtt_down > 0.2)
+        & (tp_down < -0.2)
+        & (rtt_up > 0.2)
+        & (tp_up < -0.2)
+    )
+
+    # Cluster 2: Melhoria em ambas as direções (RTT cai E TP sobe)
+    cond_2 = (
+        (rtt_down < -0.2)
+        & (tp_down > 0.2)
+        & (rtt_up < -0.2)
+        & (tp_up > 0.2)
+    )
+
+
+    # Aplicação sequencial dos rótulos com base nas máscaras
+    df_clean["cluster"] = 3  # "o resto" por padrão (Cluster 3)
+    df_clean.loc[cond_2, "cluster"] = 2
+    df_clean.loc[cond_1, "cluster"] = 1
+    df_clean.loc[cond_0, "cluster"] = 0
+
+    # 5. Salvamento do CSV
+    base_output_name = f"clusters_manual_{file_name}"
+    csv_path = os.path.join(output_dir, base_output_name)
+    df_clean.to_csv(csv_path, index=False)
+
+    # 6. Geração do Relatório Técnico Simplificado (TXT)
+    report_path = csv_path.replace(".csv", ".txt")
+    with open(report_path, "w") as f:
+        f.write(f"RELATORIO DE CLUSTERIZACAO MANUAL - {scenario}\n")
+        f.write("=" * 60 + "\n")
+        f.write(f"Metrica de Referencia: {ref_metric}\n")
+        f.write(f"Algoritmo CPD: {method}\n")
+        f.write(f"Numero de Clusters (Manual): 4\n")
+        f.write(f"Total de Eventos: {len(df_clean)}\n\n")
+
+        f.write("RESUMO DOS CLUSTERS:\n")
+        f.write("-" * 30 + "\n")
+        counts = df_clean["cluster"].value_counts().sort_index()
+        for cluster_id, count in counts.items():
+            descricoes = {
+                0: "Estavel (-0.2 <= RTT/TP <= 0.2)",
+                1: "Degradacao (RTT > 0.2 E TP < -0.2)",
+                2: "Melhoria (RTT < -0.2 E TP > 0.2)",
+                3: "Outros Combinacoes (Resto)",
+            }
+            f.write(f"Cluster {cluster_id} - {descricoes.get(cluster_id)}:\n") # type: ignore
+            f.write(
+                f"  - Quantidade de Eventos: {count} ({count/len(df_clean)*100:.1f}%)\n"
+            )
+            f.write("-" * 30 + "\n")
+
+    print(f"Processamento concluído para {ref_metric}.")
+    print(f"CSV salvo em: {csv_path}")
+    print(f"Relatorio salvo em: {report_path}")
+
 def compile_cluster_reports(scenario, method, ref_metric, threshold):
     path = os.path.join("clusters", scenario)
     if not os.path.exists(path):
@@ -155,9 +266,9 @@ def compile_cluster_reports(scenario, method, ref_metric, threshold):
 
 if __name__ == "__main__":
     scenario = "NDT"
-    method = "vwcd_w24_fp2"
+    method = "vwcd_w20_fn2"
     ref_metric = "rtt_down"
-    threshold = 0.80
+    threshold = 0.95
     for k in range(2, 11):
         cluster_and_save_results(
             scenario=scenario,
@@ -167,6 +278,12 @@ if __name__ == "__main__":
             n_clusters=k,
             clean=True
         )
+    # manual_cluster_and_save_results(
+    #     scenario=scenario,
+    #     method=method,
+    #     ref_metric=ref_metric,
+    #     threshold=threshold
+    # )
     # compile_cluster_reports(
     #     scenario=scenario,
     #     method=method,
