@@ -294,8 +294,8 @@ def detecta_cusum_tratado(X, threshold=5.0, drift=0.7, window_suavizacao=5):
     # Como a série está normalizada, threshold=5.0 significa acumular 5 desvios padrões de erro.
     ta, _, _, _ = detect_cusum(
         x=X_norm,
-        threshold=threshold,
-        drift=drift,
+        threshold=threshold, # type: ignore
+        drift=drift, # type: ignore
         ending=True,
         show=False
     )
@@ -343,8 +343,8 @@ def detecta_cusum_final(X, threshold=3.0, drift=0.2, window_suavizacao=5):
     # 3. Execução do CUSUM clássico na série blindada
     ta, _, _, _ = detect_cusum(
         x=X_norm,
-        threshold=threshold,
-        drift=drift,
+        threshold=threshold, # type: ignore 
+        drift=drift, # type: ignore
         ending=True,
         show=False
     )
@@ -394,8 +394,8 @@ def detecta_cusum_universal(X, threshold=4.0, drift=0.2, window_rolling=30):
     # 4. Execução do CUSUM clássico na série adaptada
     ta, _, _, _ = detect_cusum(
         x=X_norm,
-        threshold=threshold,
-        drift=drift,
+        threshold=threshold, # type: ignore
+        drift=drift, # type: ignore
         ending=True,
         show=False
     )
