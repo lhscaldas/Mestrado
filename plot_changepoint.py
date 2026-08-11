@@ -43,6 +43,10 @@ def plot_changepoint(cenario, methods, file, threshold=0.95, tail_plot=False, sh
     metric_val = metric if metric else cenario
     serie_file = os.path.join('series', metric_val, file)
     df_serie = load_and_slice_df(serie_file)
+
+    if df_serie.empty:
+        return
+    
     value_column = [col for col in df_serie.columns if col != 'timestamp'][0]
 
     df_methods = {}
@@ -150,24 +154,39 @@ def plot_folder(cenario, method, threshold, save=True, tail_plot=False, alias=""
 
 if __name__ == "__main__":
     print("Starting change point plotting...")
-    # cenario = "teste"
-    # method = "compare"
+    # cenario = 'teste_m130'
+    # method = "cusum"
     # file = "teste01.csv"
-    # plot_one(cenario, method, file, 0.95, save=False, show=True, tail_plot=False)
+    # plot_one(cenario, method, file, 0.95, save=True, show=True, tail_plot=False)
 
-    NDT_folder = "NDT"
-    cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
-    # cenarios = ["NDT_rtt_test"]
-    method = ["cusum", "pelt", "vwcd"]
+    method = ["cusum", "pelt", "vwcd_w24_fp2"]
+    threshold = 0.9
 
-    for cenario in cenarios:
-        # plot_folder(cenario, method, 0.95, save=True, tail_plot=True, alias="slice_FEV", slice=["2026-02-01", "2026-02-28"]) # slice
-        # plot_folder(cenario, method, 0.95, save=False, tail_plot=True, show=True) # iterativo
-        plot_folder(cenario, method, 0.95, save=True, tail_plot=False) # comparação
-        plot_folder(cenario, method, 0.95, save=True, tail_plot=True) # comparação
-        # plot_folder(cenario, [], 0.95, save=True, tail_plot=False) # série pura 
-
-    # cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
-    # method = "pure"
+    # NDT_folder = "NDT"
+    # cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    # cenarios = ["teste_m110", "teste_m130", "teste_m150"]
     # for cenario in cenarios:
-    #     plot_folder(cenario, method, 0.95, save=True, tail_plot=False)
+        # plot_folder(cenario, method, threshold, save=False, tail_plot=True, show=True) # iterativo
+        # plot_folder(cenario, method, threshold, save=True, tail_plot=False) # comparação
+        # plot_folder(cenario, method, threshold, save=True, tail_plot=True) # comparação
+        # plot_folder(cenario, [], threshold, save=True, tail_plot=False) # série pura 
+
+    slices = [
+        ["2025-10-01", "2025-10-31"],
+        ["2025-11-01", "2025-11-30"],
+        ["2025-12-01", "2025-12-31"],
+        ["2026-01-01", "2026-01-31"],
+        ["2026-02-01", "2026-02-28"],
+        ["2026-03-01", "2026-03-31"],
+        ["2026-04-01", "2026-04-30"]
+    ]
+    aliases = ["october", "november", "december", "january", "february", "march", "april"]
+    for slice_window, alias in zip(slices, aliases):
+        cenario = "NDT/rtt_down"
+        plot_folder(cenario, method, threshold, save=True, tail_plot=False, alias=alias, slice_window=slice_window) # slice
+        plot_folder(cenario, method, threshold, save=True, tail_plot=True, alias=alias, slice_window=slice_window) # slice
+
+    # # cenarios = ["NDT_OUT/packet_loss", "NDT_OUT/tp_up","NDT_OUT/rtt_down"]
+    # # method = "pure"
+    # # for cenario in cenarios:
+    # #     plot_folder(cenario, method, threshold, save=True, tail_plot=False)

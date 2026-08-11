@@ -67,18 +67,56 @@ def multiple_files(W, C_FP, C_FN, cenario, method, threshold=0.95):
 if __name__ == "__main__":
     print("Starting VWCD change point detection...")
     import time
-    method = "vwcd_w20_fn2"
+    method = "vwcd_w24_fn2"
     threshold = 0.95 # Só influencia nos plots
-    W = 20
+    W = 24
     C_FP = 1.0
     C_FN = 2.0
 
 
     NDT_folder = "NDT"
-    # cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
-    cenarios = [f"{NDT_folder}/pl", f"{NDT_folder}/tp_up"]
+    cenarios = [f"{NDT_folder}/{p}" for p in os.listdir(f"series/{NDT_folder}") if os.path.isdir(f"series/{NDT_folder}/{p}") and p != "full"]
+    # cenarios = ['teste_m110', 'teste_m130', 'teste_m150']
     for cenario in cenarios:
         begin = time.time()
         multiple_files(W, C_FP, C_FN, cenario, method, threshold)
         end = time.time()
         print(f"Cenário '{cenario}' processado em {end - begin:.2f} segundos")
+
+
+
+# if __name__ == "__main__":
+#     print("Starting VWCD change point detection...")
+#     import time
+    
+#     threshold = 0.95 # Só influencia nos plots
+    
+#     # Parâmetros para testar
+#     W_values = [20, 24]
+#     cost_combinations = [
+#         (1.0, 1.0), # C_FP=1, C_FN=1
+#         (2.0, 1.0), # C_FP=2, C_FN=1
+#         (1.0, 2.0)  # C_FP=1, C_FN=2
+#     ]
+
+#     cenarios = ['teste_m110', 'teste_m130', 'teste_m150']
+    
+#     for W in W_values:
+#         for C_FP, C_FN in cost_combinations:
+#             # Definição do sufixo com base nos custos
+#             if C_FP == 1.0 and C_FN == 1.0:
+#                 sufixo = "fp1"
+#             elif C_FP == 2.0 and C_FN == 1.0:
+#                 sufixo = "fp2"
+#             elif C_FP == 1.0 and C_FN == 2.0:
+#                 sufixo = "fn2"
+            
+#             method = f"vwcd_w{W}_{sufixo}"  # type: ignore
+            
+#             print(f"\n--- Iniciando testes para: {method} (W={W}, C_FP={C_FP}, C_FN={C_FN}) ---")
+            
+#             for cenario in cenarios:
+#                 begin = time.time()
+#                 multiple_files(W, C_FP, C_FN, cenario, method, threshold)
+#                 end = time.time()
+#                 print(f"Cenário '{cenario}' processado em {end - begin:.2f} segundos")
