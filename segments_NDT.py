@@ -124,26 +124,22 @@ def feature_extraction(scenario, method, threshold, ref_metric):
 
     df = pd.read_csv(input_path)
     
-    df = df[df['n_points'] >= 6].copy()
-    
-    df['series_id'] = df['client'] + "_" + df['server'] + "_" + df['block'].astype(str)
-    
-    series_counts = df.groupby('series_id').size()
-    series_with_changes = series_counts[series_counts > 1].index
-    df_filtered = df[df['series_id'].isin(series_with_changes)].copy()
-    
-    df_filtered = df_filtered.sort_values(['client', 'server', 'block', 'segment_number'])
-    
+    df = df.sort_values(['client', 'server', 'block', 'segment_number'])
+
     eps = 1e-9
     features_list = []
 
-    for (client, server, block), group in df_filtered.groupby(['client', 'server', 'block']):
+    for (client, server, block), group in df.groupby(['client', 'server', 'block']):
         group = group.reset_index(drop=True)
-        
+
         for i in range(len(group) - 1):
             curr_seg = group.iloc[i]
             next_seg = group.iloc[i+1]
-            
+
+            # Só compara segmentos vizinhos, ambos com pelo menos 6 pontos
+            if curr_seg['n_points'] < 6 or next_seg['n_points'] < 6:
+                continue
+
             feat = {
                 'client': curr_seg['client'],
                 'server': curr_seg['server'],
