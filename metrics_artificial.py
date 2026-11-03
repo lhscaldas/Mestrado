@@ -54,7 +54,11 @@ def calculate_metrics_folder(cenario: str, method: str, threshold: float = 0.95,
                 fn += 1
                 
         fp = len(pred_indices) - len(used_preds)
-        tn = len(y_true) - tp - fp - fn
+        # TN: só instantes fora da região de tolerância (os únicos que podem virar FP)
+        in_tolerance = np.zeros(len(y_true), dtype=bool)
+        for ti in true_indices:
+            in_tolerance[max(0, ti - tolerance):ti + tolerance + 1] = True
+        tn = int(np.sum(~in_tolerance & (y_pred == 0)))
         
         total_tp += tp
         total_fp += fp
